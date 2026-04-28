@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { MapClient } from '@/components/MapClient'
@@ -44,6 +44,7 @@ interface TripViewClientProps {
   distanceKm: string
   date: string
   journal: string | null
+  youtubeId: string | null
 }
 
 export function TripViewClient({
@@ -54,9 +55,11 @@ export function TripViewClient({
   distanceKm,
   date,
   journal,
+  youtubeId,
 }: TripViewClientProps) {
   const t = useTranslations('trip')
   const [hoveredDistance, setHoveredDistance] = useState<number | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   const elevationMarkers = (() => {
     const markers: { distanceM: number; label: string; color: string }[] = []
@@ -128,6 +131,29 @@ export function TripViewClient({
           <p className="mt-3 text-sm text-slate-400 leading-relaxed border-t border-slate-800 pt-3">
             {journal}
           </p>
+        )}
+
+        {youtubeId && (
+          <div className="mt-3 border-t border-slate-800 pt-3 relative">
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                ref={iframeRef}
+                src={`https://www.youtube.com/embed/${youtubeId}`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full rounded"
+              />
+              <button
+                onClick={() => iframeRef.current?.requestFullscreen()}
+                className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded p-1 transition-colors"
+                aria-label="Fullscreen"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+              </button>
+            </div>
+          </div>
         )}
 
         {trip.elevation && trip.elevation.length > 1 && (
