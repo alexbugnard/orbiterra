@@ -29,11 +29,15 @@
     "videosTitle": "Vidéo du jour",
     "mGain": "m dénivelé+",
     "vincentMarkerLabel": "📍 Vincent",
-    "vincentLastSeen": "Dernière position connue"
+    "vincentLastSeen": "Dernière position connue",
+    "showMore": "Voir plus",
+    "showLess": "Voir moins"
   },
   "trip": {
     "backToMap": "Retour à la carte",
-    "mGain": "m dénivelé+"
+    "mGain": "m dénivelé+",
+    "showMore": "Voir plus",
+    "showLess": "Voir moins"
   },
   "about": {
     "title": "À propos",

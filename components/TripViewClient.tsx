@@ -62,6 +62,7 @@ export function TripViewClient({
   const [videoActive, setVideoActive] = useState(false)
   const [videoHovered, setVideoHovered] = useState(false)
   const [videoModalOpen, setVideoModalOpen] = useState(false)
+  const [journalExpanded, setJournalExpanded] = useState(false)
 
   const elevationMarkers = (() => {
     const markers: { distanceM: number; label: string; color: string }[] = []
@@ -130,9 +131,17 @@ export function TripViewClient({
         </div>
 
         {journal && (
-          <p className="mt-3 text-sm text-slate-400 leading-relaxed border-t border-slate-800 pt-3">
-            {journal}
-          </p>
+          <div className="mt-3 border-t border-slate-800 pt-3">
+            <p className={`text-sm text-slate-400 leading-relaxed${journalExpanded ? '' : ' line-clamp-3'}`}>
+              {journal}
+            </p>
+            <button
+              onClick={() => setJournalExpanded(e => !e)}
+              className="mt-1 text-xs text-orange-400 hover:text-orange-300 transition-colors"
+            >
+              {journalExpanded ? t('showLess') : t('showMore')}
+            </button>
+          </div>
         )}
 
         {youtubeId && (

@@ -333,6 +333,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null)
   const [mapVideoModal, setMapVideoModal] = useState<string | null>(null)
   const [hoveredDistance, setHoveredDistance] = useState<number | null>(null)
+  const [journalExpanded, setJournalExpanded] = useState(false)
   const [hoveredRouteDistance, setHoveredRouteDistance] = useState<number | null>(null)
   const [wikiTarget, setWikiTarget] = useState<WikiTarget | null>(null)
   const [wikiSummary, setWikiSummary] = useState<WikiSummary | null>(null)
@@ -746,6 +747,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
     selectedTripIndexRef.current = index
     setActiveVideoId(null)
     setHoveredDistance(null)
+    setJournalExpanded(false)
 
     // Fly to the trip bounds
     const L = (window as any)._L
@@ -1318,9 +1320,17 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
             {/* Journal + Videos */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
               {(locale === 'fr' ? selectedTrip.journal_fr : selectedTrip.journal_en) ? (
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  {locale === 'fr' ? selectedTrip.journal_fr : selectedTrip.journal_en}
-                </p>
+                <div>
+                  <p className={`text-sm text-slate-300 leading-relaxed${journalExpanded ? '' : ' line-clamp-3'}`}>
+                    {locale === 'fr' ? selectedTrip.journal_fr : selectedTrip.journal_en}
+                  </p>
+                  <button
+                    onClick={() => setJournalExpanded(e => !e)}
+                    className="mt-1 text-xs text-orange-400 hover:text-orange-300 transition-colors"
+                  >
+                    {journalExpanded ? t('showLess') : t('showMore')}
+                  </button>
+                </div>
               ) : (
                 <p className="text-sm text-slate-600 italic">{t('noJournal')}</p>
               )}

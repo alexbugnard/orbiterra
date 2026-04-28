@@ -29,11 +29,15 @@
     "videosTitle": "Video of the day",
     "mGain": "m elevation gain",
     "vincentMarkerLabel": "📍 Vincent",
-    "vincentLastSeen": "Last known position"
+    "vincentLastSeen": "Last known position",
+    "showMore": "Show more",
+    "showLess": "Show less"
   },
   "trip": {
     "backToMap": "Back to map",
-    "mGain": "m elevation gain"
+    "mGain": "m elevation gain",
+    "showMore": "Show more",
+    "showLess": "Show less"
   },
   "about": {
     "title": "About",
