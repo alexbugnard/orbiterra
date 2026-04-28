@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { MapClient } from '@/components/MapClient'
@@ -63,6 +63,14 @@ export function TripViewClient({
   const [videoHovered, setVideoHovered] = useState(false)
   const [videoModalOpen, setVideoModalOpen] = useState(false)
   const [journalExpanded, setJournalExpanded] = useState(false)
+  const [journalLong, setJournalLong] = useState(false)
+  const journalRef = useRef<HTMLParagraphElement>(null)
+
+  useEffect(() => {
+    const el = journalRef.current
+    if (!el) return
+    setJournalLong(el.scrollHeight > el.clientHeight + 1)
+  }, [journal])
 
   const elevationMarkers = (() => {
     const markers: { distanceM: number; label: string; color: string }[] = []
@@ -132,15 +140,17 @@ export function TripViewClient({
 
         {journal && (
           <div className="mt-3 border-t border-slate-800 pt-3">
-            <p className={`text-sm text-slate-400 leading-relaxed${journalExpanded ? '' : ' line-clamp-3'}`}>
+            <p ref={journalRef} className={`text-sm text-slate-400 leading-relaxed${journalExpanded ? '' : ' line-clamp-3'}`}>
               {journal}
             </p>
-            <button
-              onClick={() => setJournalExpanded(e => !e)}
-              className="mt-1 text-xs text-orange-400 hover:text-orange-300 transition-colors"
-            >
-              {journalExpanded ? t('showLess') : t('showMore')}
-            </button>
+            {journalLong && (
+              <button
+                onClick={() => setJournalExpanded(e => !e)}
+                className="mt-1 text-xs text-orange-400 hover:text-orange-300 transition-colors"
+              >
+                {journalExpanded ? t('showLess') : t('showMore')}
+              </button>
+            )}
           </div>
         )}
 

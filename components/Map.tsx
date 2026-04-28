@@ -334,6 +334,8 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
   const [mapVideoModal, setMapVideoModal] = useState<string | null>(null)
   const [hoveredDistance, setHoveredDistance] = useState<number | null>(null)
   const [journalExpanded, setJournalExpanded] = useState(false)
+  const [journalLong, setJournalLong] = useState(false)
+  const journalRef = useRef<HTMLParagraphElement>(null)
   const [hoveredRouteDistance, setHoveredRouteDistance] = useState<number | null>(null)
   const [wikiTarget, setWikiTarget] = useState<WikiTarget | null>(null)
   const [wikiSummary, setWikiSummary] = useState<WikiSummary | null>(null)
@@ -748,6 +750,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
     setActiveVideoId(null)
     setHoveredDistance(null)
     setJournalExpanded(false)
+    setJournalLong(false)
 
     // Fly to the trip bounds
     const L = (window as any)._L
@@ -1205,6 +1208,12 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
   const prevIndex = selectedTripIndex !== null && selectedTripIndex > 0 ? selectedTripIndex - 1 : null
   const nextIndex = selectedTripIndex !== null && selectedTripIndex < trips.length - 1 ? selectedTripIndex + 1 : null
 
+  useEffect(() => {
+    const el = journalRef.current
+    if (!el) return
+    setJournalLong(el.scrollHeight > el.clientHeight + 1)
+  }, [selectedTripIndex])
+
   return (
     <div className="relative w-full h-full">
       <div ref={containerRef} className="w-full h-full" />
@@ -1321,15 +1330,17 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
               {(locale === 'fr' ? selectedTrip.journal_fr : selectedTrip.journal_en) ? (
                 <div>
-                  <p className={`text-sm text-slate-300 leading-relaxed${journalExpanded ? '' : ' line-clamp-3'}`}>
+                  <p ref={journalRef} className={`text-sm text-slate-300 leading-relaxed${journalExpanded ? '' : ' line-clamp-3'}`}>
                     {locale === 'fr' ? selectedTrip.journal_fr : selectedTrip.journal_en}
                   </p>
-                  <button
-                    onClick={() => setJournalExpanded(e => !e)}
-                    className="mt-1 text-xs text-orange-400 hover:text-orange-300 transition-colors"
-                  >
-                    {journalExpanded ? t('showLess') : t('showMore')}
-                  </button>
+                  {journalLong && (
+                    <button
+                      onClick={() => setJournalExpanded(e => !e)}
+                      className="mt-1 text-xs text-orange-400 hover:text-orange-300 transition-colors"
+                    >
+                      {journalExpanded ? t('showLess') : t('showMore')}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-slate-600 italic">{t('noJournal')}</p>
