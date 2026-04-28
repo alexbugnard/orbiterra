@@ -60,6 +60,7 @@ export function TripViewClient({
   const t = useTranslations('trip')
   const [hoveredDistance, setHoveredDistance] = useState<number | null>(null)
   const [videoActive, setVideoActive] = useState(false)
+  const [videoHovered, setVideoHovered] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   const elevationMarkers = (() => {
@@ -135,42 +136,59 @@ export function TripViewClient({
         )}
 
         {youtubeId && (
-          <div className="mt-3 border-t border-slate-800 pt-3">
-            <div className="w-full max-w-xs rounded-xl overflow-hidden border border-slate-700">
-              {videoActive ? (
-                <div className="relative aspect-video">
-                  <iframe
-                    ref={iframeRef}
-                    src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                    allowFullScreen
-                    className="absolute inset-0 w-full h-full"
-                  />
-                  <button
-                    onClick={() => iframeRef.current?.requestFullscreen()}
-                    className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white rounded p-1 transition-colors"
-                    aria-label="Fullscreen"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-                    </svg>
-                  </button>
-                </div>
-              ) : (
-                <button className="relative w-full group" onClick={() => setVideoActive(true)}>
-                  <img
-                    src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
-                    alt="Video"
-                    className="w-full aspect-video object-cover"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
-                    <div className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
-                    </div>
+          <div
+            className="mt-2 relative inline-block"
+            onMouseEnter={() => setVideoHovered(true)}
+            onMouseLeave={() => setVideoHovered(false)}
+          >
+            <button
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-600/20 hover:bg-red-600/30 border border-red-600/40 text-red-400 text-xs font-medium transition-colors"
+              onClick={() => setVideoHovered(true)}
+              aria-label="Voir la vidéo"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+              Vidéo
+            </button>
+
+            {videoHovered && (
+              <div className="absolute left-0 bottom-full mb-2 z-50 w-56 rounded-xl overflow-hidden border border-slate-700 shadow-2xl" style={{ background: 'rgba(15,23,42,0.97)' }}>
+                {videoActive ? (
+                  <div className="relative">
+                    <iframe
+                      ref={iframeRef}
+                      src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                      allowFullScreen
+                      className="w-full"
+                      style={{ height: '105px' }}
+                    />
+                    <button
+                      onClick={() => iframeRef.current?.requestFullscreen()}
+                      className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded p-0.5 transition-colors"
+                      aria-label="Fullscreen"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                      </svg>
+                    </button>
                   </div>
-                </button>
-              )}
-            </div>
+                ) : (
+                  <button className="relative w-full group" onClick={() => setVideoActive(true)}>
+                    <img
+                      src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
+                      alt="Vidéo"
+                      className="w-full"
+                      style={{ height: '105px', objectFit: 'cover' }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                      </div>
+                    </div>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
