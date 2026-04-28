@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import { MapClient } from '@/components/MapClient'
 import { SyncTrigger } from '@/components/SyncTrigger'
 import { computeElevationGain } from '@/lib/strava'
+import { fetchChannelVideos } from '@/lib/youtube'
 // @ts-ignore
 import tzlookup from 'tz-lookup'
 
@@ -109,6 +110,17 @@ async function getMapData() {
     published_at: v.published_at as string | null,
   }))
 
+  // RSS fallback: pick up videos uploaded since the last cron run (not yet in DB)
+  let rssExtras: { youtube_id: string; title: string }[] = []
+  try {
+    const channelId = process.env.YOUTUBE_CHANNEL_ID ?? 'UCxOaBkNDFV1BRL_eUMWuQyQ'
+    const rss = await fetchChannelVideos(channelId)
+    const knownIds = new Set(formattedVideos.map(v => v.youtube_id))
+    rssExtras = rss.filter(v => !knownIds.has(v.youtube_id))
+  } catch { }
+
+  const allVideos = [...formattedVideos, ...rssExtras]
+
   const formattedTrips = (trips ?? []).map((t: any) => ({
     id: t.id,
     name: t.name,
@@ -130,7 +142,7 @@ async function getMapData() {
     elev_high_lng: (t.elev_high_lng ?? null) as number | null,
     youtube_id: (() => {
       const d = (t.start_date as string).slice(0, 10).replace(/-/g, '')
-      return formattedVideos.find(v => v.title.includes(d))?.youtube_id ?? null
+      return allVideos.find(v => v.title.includes(d))?.youtube_id ?? null
     })(),
   }))
 
