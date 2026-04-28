@@ -102,6 +102,13 @@ async function getMapData() {
       .order('name', { ascending: true }),
   ])
 
+  const formattedVideos = (videos ?? []).map((v: any) => ({
+    id: v.id as string,
+    youtube_id: v.youtube_id as string,
+    title: v.title as string,
+    published_at: v.published_at as string | null,
+  }))
+
   const formattedTrips = (trips ?? []).map((t: any) => ({
     id: t.id,
     name: t.name,
@@ -121,6 +128,10 @@ async function getMapData() {
     max_speed_lng: (t.max_speed_lng ?? null) as number | null,
     elev_high_lat: (t.elev_high_lat ?? null) as number | null,
     elev_high_lng: (t.elev_high_lng ?? null) as number | null,
+    youtube_id: (() => {
+      const d = (t.start_date as string).slice(0, 10).replace(/-/g, '')
+      return formattedVideos.find(v => v.title.includes(d))?.youtube_id ?? null
+    })(),
   }))
 
   const formattedPlannedRoutes = (plannedRoutes ?? []).map((r: any) => ({
@@ -130,13 +141,6 @@ async function getMapData() {
     color: r.color,
     elevation: (r.elevation ?? null) as [number, number][] | null,
     countries: (r.countries ?? null) as [number, string][] | null,
-  }))
-
-  const formattedVideos = (videos ?? []).map((v: any) => ({
-    id: v.id as string,
-    youtube_id: v.youtube_id as string,
-    title: v.title as string,
-    published_at: v.published_at as string | null,
   }))
 
   const routeCoords = formattedPlannedRoutes[0]?.coordinates ?? []

@@ -31,6 +31,7 @@ interface Trip {
   max_speed_lng: number | null
   elev_high_lat: number | null
   elev_high_lng: number | null
+  youtube_id?: string | null
 }
 
 interface Waypoint {
@@ -1322,49 +1323,41 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
               )}
 
               {/* Videos posted on the same day as this ride */}
-              {(() => {
-                const rideDate = toDateStr(selectedTrip.start_date)
-                const rideDateCompact = rideDate.replace(/-/g, '')
-                const dayVideos = videos.filter(
-                  (v) => v.title.includes(rideDateCompact)
-                )
-                if (dayVideos.length === 0) return null
+              {selectedTrip.youtube_id && (() => {
+                const youtubeId = selectedTrip.youtube_id!
                 return (
                   <div className="pt-2 border-t border-slate-700/50 space-y-2">
                     <div className="text-xs font-semibold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
                       {t('videosTitle')}
                     </div>
-                    {dayVideos.map((video) => (
-                      <div key={video.id} className="rounded-xl overflow-hidden border border-slate-700">
-                        {activeVideoId === video.youtube_id ? (
-                          <iframe
-                            src={`https://www.youtube-nocookie.com/embed/${video.youtube_id}?autoplay=1`}
-                            title={video.title}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="w-full aspect-video"
+                    <div className="rounded-xl overflow-hidden border border-slate-700">
+                      {activeVideoId === youtubeId ? (
+                        <iframe
+                          src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1`}
+                          title={youtubeId}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full aspect-video"
+                        />
+                      ) : (
+                        <button
+                          className="relative w-full group"
+                          onClick={() => setActiveVideoId(youtubeId)}
+                        >
+                          <img
+                            src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
+                            alt="Vidéo"
+                            className="w-full aspect-video object-cover"
                           />
-                        ) : (
-                          <button
-                            className="relative w-full group"
-                            onClick={() => setActiveVideoId(video.youtube_id)}
-                          >
-                            <img
-                              src={`https://img.youtube.com/vi/${video.youtube_id}/hqdefault.jpg`}
-                              alt={video.title}
-                              className="w-full aspect-video object-cover"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
-                              <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
-                              </div>
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
+                            <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
                             </div>
-                          </button>
-                        )}
-                        <div className="px-2.5 py-1.5 text-xs text-slate-400 truncate">{video.title}</div>
-                      </div>
-                    ))}
+                          </div>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )
               })()}
