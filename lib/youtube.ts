@@ -34,3 +34,8 @@ export async function fetchChannelVideos(channelId: string): Promise<YoutubeVide
   if (!res.ok) throw new Error(`YouTube RSS feed failed: ${res.status}`)
   return parseRssFeed(await res.text())
 }
+
+export function findVideoIdForDate(dateStr: string, videos: YoutubeVideo[]): string | null {
+  const match = videos.find(v => v.title.includes(dateStr))
+  return match?.youtube_id ?? null
+}
