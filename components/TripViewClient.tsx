@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { MapClient } from '@/components/MapClient'
@@ -61,7 +61,7 @@ export function TripViewClient({
   const [hoveredDistance, setHoveredDistance] = useState<number | null>(null)
   const [videoActive, setVideoActive] = useState(false)
   const [videoHovered, setVideoHovered] = useState(false)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const [videoModalOpen, setVideoModalOpen] = useState(false)
 
   const elevationMarkers = (() => {
     const markers: { distanceM: number; label: string; color: string }[] = []
@@ -143,7 +143,7 @@ export function TripViewClient({
           >
             <button
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-600/20 hover:bg-red-600/30 border border-red-600/40 text-red-400 text-xs font-medium transition-colors"
-              onClick={() => setVideoHovered(true)}
+              onClick={() => setVideoModalOpen(true)}
               aria-label="Voir la vidéo"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
@@ -153,25 +153,13 @@ export function TripViewClient({
             {videoHovered && (
               <div className="absolute left-0 bottom-full mb-2 z-50 w-56 rounded-xl overflow-hidden border border-slate-700 shadow-2xl" style={{ background: 'rgba(15,23,42,0.97)' }}>
                 {videoActive ? (
-                  <div className="relative">
-                    <iframe
-                      ref={iframeRef}
-                      src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1`}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                      allowFullScreen
-                      className="w-full"
-                      style={{ height: '105px' }}
-                    />
-                    <button
-                      onClick={() => iframeRef.current?.requestFullscreen()}
-                      className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded p-0.5 transition-colors"
-                      aria-label="Fullscreen"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-                      </svg>
-                    </button>
-                  </div>
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                    allowFullScreen
+                    className="w-full"
+                    style={{ height: '105px' }}
+                  />
                 ) : (
                   <button className="relative w-full group" onClick={() => setVideoActive(true)}>
                     <img
@@ -204,6 +192,34 @@ export function TripViewClient({
           </div>
         )}
       </div>
+
+      {videoModalOpen && youtubeId && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90"
+          onClick={() => setVideoModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-4xl mx-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              allowFullScreen
+              className="w-full aspect-video rounded-xl"
+            />
+            <button
+              onClick={() => setVideoModalOpen(false)}
+              className="absolute -top-10 right-0 text-white/80 hover:text-white text-sm font-medium flex items-center gap-1.5"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1">
         <MapClient
