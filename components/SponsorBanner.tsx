@@ -11,7 +11,7 @@ const SPONSORS = [
   { name: 'ICON OUTDOOR', logo: '/sponsors/icon-outdoor-logo.webp', url: 'https://icon-outdoor.ch/' },
   { name: 'bücher&walt', logo: '/sponsors/bucherwalt-logo.png', url: 'https://www.bucher-walt.ch' },
   { name: 'Môlechaux Sports Team', logo: '/sponsors/mst.png', url: 'https://www.instagram.com/molechaux_sports_team/' },
-  { name: 'Charmey Sports', logo: '/sponsors/charmey_sport.webp', url: 'https://www.charmeysports.ch/' },
+  { name: 'Charmey Sports', logo: '/sponsors/Logo+bleu+IMG-20251212-WA0000.jpg', url: 'https://www.charmeysports.ch/' },
 ]
 
 interface Props {
