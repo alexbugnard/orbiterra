@@ -280,7 +280,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
                 { name: 'ICON OUTDOOR', sub: '', url: 'https://icon-outdoor.ch/', logo: '/sponsors/icon-outdoor-logo.webp' },
                 { name: 'bücher&walt', sub: '', url: 'https://www.bucher-walt.ch', logo: '/sponsors/bucherwalt-logo.png' },
                 { name: 'Môlechaux Sports', sub: '', url: 'https://www.instagram.com/molechaux_sports_team/', logo: '/sponsors/mst.png' },
-                { name: 'Charmey Sports', sub: '', url: 'https://www.charmeysports.ch/', logo: '/sponsors/Logo+bleu+IMG-20251212-WA0000.jpg' },
+                { name: 'Charmey Sports', sub: '', url: 'https://www.charmeysports.ch/', logo: '/sponsors/Logo+bleu+IMG-20251212-WA0000.png' },
               ].map((s) => (
                 <a
                   key={s.name}
