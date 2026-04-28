@@ -2,6 +2,7 @@ import { createSupabaseClient } from '@/lib/supabase'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { TripViewClient } from '@/components/TripViewClient'
 import { notFound } from 'next/navigation'
+import { fetchChannelVideos, findVideoIdForDate } from '@/lib/youtube'
 
 export default async function TripPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -17,6 +18,28 @@ export default async function TripPage({ params }: { params: Promise<{ id: strin
     .single()
 
   if (!trip) notFound()
+
+  const tripDateStr = trip.start_date.slice(0, 10).replace(/-/g, '')
+
+  let youtubeId: string | null = null
+  const { data: videoRow } = await supabase
+    .from('videos')
+    .select('youtube_id')
+    .ilike('title', `%${tripDateStr}%`)
+    .limit(1)
+    .maybeSingle()
+
+  if (videoRow) {
+    youtubeId = videoRow.youtube_id
+  } else {
+    try {
+      const channelId = process.env.YOUTUBE_CHANNEL_ID ?? 'UCxOaBkNDFV1BRL_eUMWuQyQ'
+      const liveVideos = await fetchChannelVideos(channelId)
+      youtubeId = findVideoIdForDate(tripDateStr, liveVideos)
+    } catch {
+      // RSS unavailable — silently skip
+    }
+  }
 
   const { data: waypoints } = await supabase
     .from('waypoints')
@@ -59,6 +82,7 @@ export default async function TripPage({ params }: { params: Promise<{ id: strin
       distanceKm={distanceKm}
       date={date}
       journal={journal}
+      youtubeId={youtubeId}
     />
   )
 }
