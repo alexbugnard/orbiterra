@@ -34,7 +34,7 @@ interface Trip {
   max_speed_lng: number | null
   elev_high_lat: number | null
   elev_high_lng: number | null
-  youtube_id?: string | null
+  youtube_ids?: string[]
 }
 
 interface Waypoint {

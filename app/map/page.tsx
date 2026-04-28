@@ -140,9 +140,9 @@ async function getMapData() {
     max_speed_lng: (t.max_speed_lng ?? null) as number | null,
     elev_high_lat: (t.elev_high_lat ?? null) as number | null,
     elev_high_lng: (t.elev_high_lng ?? null) as number | null,
-    youtube_id: (() => {
+    youtube_ids: (() => {
       const d = (t.start_date as string).slice(0, 10).replace(/-/g, '')
-      return allVideos.find(v => v.title.includes(d))?.youtube_id ?? null
+      return allVideos.filter(v => v.title.includes(d)).map(v => v.youtube_id)
     })(),
   }))
 

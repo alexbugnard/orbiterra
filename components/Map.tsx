@@ -31,7 +31,7 @@ interface Trip {
   max_speed_lng: number | null
   elev_high_lat: number | null
   elev_high_lng: number | null
-  youtube_id?: string | null
+  youtube_ids?: string[]
 }
 
 interface Waypoint {
@@ -1325,16 +1325,16 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
                 <p className="text-sm text-slate-600 italic">{t('noJournal')}</p>
               )}
 
-              {/* Video of the day */}
-              {selectedTrip.youtube_id && (() => {
-                const youtubeId = selectedTrip.youtube_id!
-                return (
-                  <div className="pt-2 border-t border-slate-700/50">
-                    <div className="text-xs font-semibold text-red-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-                      {t('videosTitle')}
-                    </div>
+              {/* Videos of the day */}
+              {(selectedTrip.youtube_ids ?? []).length > 0 && (
+                <div className="pt-2 border-t border-slate-700/50 space-y-2">
+                  <div className="text-xs font-semibold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+                    {t('videosTitle')}
+                  </div>
+                  {(selectedTrip.youtube_ids ?? []).map((youtubeId) => (
                     <button
+                      key={youtubeId}
                       className="relative w-full group rounded-xl overflow-hidden border border-slate-700"
                       onClick={() => setMapVideoModal(youtubeId)}
                     >
@@ -1349,9 +1349,9 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
                         </div>
                       </div>
                     </button>
-                  </div>
-                )
-              })()}
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Footer: navigation + link */}
