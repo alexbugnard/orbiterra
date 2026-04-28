@@ -1324,8 +1324,9 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
               {/* Videos posted on the same day as this ride */}
               {(() => {
                 const rideDate = toDateStr(selectedTrip.start_date)
+                const rideDateCompact = rideDate.replace(/-/g, '')
                 const dayVideos = videos.filter(
-                  (v) => v.published_at && toDateStr(v.published_at) === rideDate
+                  (v) => v.title.includes(rideDateCompact)
                 )
                 if (dayVideos.length === 0) return null
                 return (
