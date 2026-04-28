@@ -331,6 +331,8 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null)
   const [selectedTripIndex, setSelectedTripIndex] = useState<number | null>(null)
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null)
+  const [mapVideoHovered, setMapVideoHovered] = useState<string | null>(null)
+  const [mapVideoModal, setMapVideoModal] = useState<string | null>(null)
   const [hoveredDistance, setHoveredDistance] = useState<number | null>(null)
   const [hoveredRouteDistance, setHoveredRouteDistance] = useState<number | null>(null)
   const [wikiTarget, setWikiTarget] = useState<WikiTarget | null>(null)
@@ -786,6 +788,9 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
   function closePanel() {
     setSelectedTripIndex(null)
     setHoveredDistance(null)
+    setActiveVideoId(null)
+    setMapVideoHovered(null)
+    setMapVideoModal(null)
     selectedTripIndexRef.current = null
     breakMarkersRef.current.forEach(m => m.remove())
     breakMarkersRef.current = []
@@ -1326,38 +1331,47 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
               {selectedTrip.youtube_id && (() => {
                 const youtubeId = selectedTrip.youtube_id!
                 return (
-                  <div className="pt-2 border-t border-slate-700/50 space-y-2">
-                    <div className="text-xs font-semibold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+                  <div
+                    className="relative inline-block"
+                    onMouseEnter={() => setMapVideoHovered(youtubeId)}
+                    onMouseLeave={() => setMapVideoHovered(null)}
+                  >
+                    <button
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-600/20 hover:bg-red-600/30 border border-red-600/40 text-red-400 text-xs font-medium transition-colors"
+                      onClick={() => setMapVideoModal(youtubeId)}
+                      aria-label="Voir la vidéo"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
                       {t('videosTitle')}
-                    </div>
-                    <div className="rounded-xl overflow-hidden border border-slate-700">
-                      {activeVideoId === youtubeId ? (
-                        <iframe
-                          src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1`}
-                          title={youtubeId}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="w-full aspect-video"
-                        />
-                      ) : (
-                        <button
-                          className="relative w-full group"
-                          onClick={() => setActiveVideoId(youtubeId)}
-                        >
-                          <img
-                            src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
-                            alt="Vidéo"
-                            className="w-full aspect-video object-cover"
+                    </button>
+
+                    {mapVideoHovered === youtubeId && (
+                      <div className="absolute left-0 bottom-full mb-2 z-50 w-56 rounded-xl overflow-hidden border border-slate-700 shadow-2xl" style={{ background: 'rgba(15,23,42,0.97)' }}>
+                        {activeVideoId === youtubeId ? (
+                          <iframe
+                            src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1`}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                            allowFullScreen
+                            className="w-full"
+                            style={{ height: '105px' }}
                           />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
-                            <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                        ) : (
+                          <button className="relative w-full group" onClick={() => setActiveVideoId(youtubeId)}>
+                            <img
+                              src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
+                              alt="Vidéo"
+                              className="w-full"
+                              style={{ height: '105px', objectFit: 'cover' }}
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
+                              <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                              </div>
                             </div>
-                          </div>
-                        </button>
-                      )}
-                    </div>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
               })()}
@@ -1639,6 +1653,34 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       <SponsorBanner
         hidden={selectedTrip !== null || selectedRouteIndex !== null}
       />
+
+      {mapVideoModal && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90"
+          onClick={() => setMapVideoModal(null)}
+        >
+          <div
+            className="relative w-full max-w-4xl mx-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${mapVideoModal}?autoplay=1`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              allowFullScreen
+              className="w-full aspect-video rounded-xl"
+            />
+            <button
+              onClick={() => setMapVideoModal(null)}
+              className="absolute -top-10 right-0 text-white/80 hover:text-white text-sm font-medium flex items-center gap-1.5"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
 
       {currentTz && !(selectedTrip !== null || selectedRouteIndex !== null) && (
         <div
