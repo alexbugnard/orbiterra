@@ -14,7 +14,6 @@ export async function runYoutubeSync(): Promise<{ upserted: number }> {
       {
         youtube_id: video.youtube_id,
         title: video.title,
-        published_at: video.published_at,
       },
       { onConflict: 'youtube_id' }
     )

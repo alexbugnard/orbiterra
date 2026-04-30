@@ -91,8 +91,8 @@ async function getMapData() {
       .select('id, name, coordinates, color, elevation, countries'),
     supabase
       .from('videos')
-      .select('id, youtube_id, title, published_at')
-      .order('published_at', { ascending: false }),
+      .select('id, youtube_id, title')
+      .order('created_at', { ascending: false }),
     supabase
       .from('route_cities')
       .select('id, name, country, lat, lng, wiki_slug')
@@ -107,7 +107,7 @@ async function getMapData() {
     id: v.id as string,
     youtube_id: v.youtube_id as string,
     title: v.title as string,
-    published_at: v.published_at as string | null,
+    published_at: null as string | null,
   }))
 
   // RSS fallback: pick up videos uploaded since the last cron run (not yet in DB)

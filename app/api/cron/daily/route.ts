@@ -28,7 +28,6 @@ export async function GET(request: Request) {
       const { error } = await supabase.from('videos').upsert({
         youtube_id: video.youtube_id,
         title: video.title,
-        published_at: video.published_at,
       }, { onConflict: 'youtube_id' })
       if (!error) upserted++
     }
