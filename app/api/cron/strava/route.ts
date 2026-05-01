@@ -76,7 +76,7 @@ export async function runStravaSync(): Promise<{ upserted: number; fetched: numb
       ? await reverseGeocodeCountry(firstCoord[1], firstCoord[0])
       : null
 
-    const { data: tripRow } = await supabase.from('trips').upsert({
+    const { data: tripRow, error: upsertError } = await supabase.from('trips').upsert({
       strava_id: activity.id,
       name: activity.name,
       start_date: activity.start_date,
@@ -93,6 +93,11 @@ export async function runStravaSync(): Promise<{ upserted: number; fetched: numb
       country,
       visible: true,
     }, { onConflict: 'strava_id' }).select('id').single()
+
+    if (upsertError) {
+      console.error('[strava sync] upsert failed for activity', activity.id, upsertError)
+      continue
+    }
 
     // Sync Strava photos for this activity
     if (tripRow?.id) {
