@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
 import { BikeSetup } from './BikeSetup'
@@ -16,6 +16,8 @@ export function AboutModal({ onClose }: AboutModalProps) {
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([])
   const [tab, setTab] = useState<'about' | 'gallery' | 'guide' | 'setup'>('about')
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const lightboxIndexRef = useRef<number | null>(null)
+  useEffect(() => { lightboxIndexRef.current = lightboxIndex }, [lightboxIndex])
 
   // Load gallery
   useEffect(() => {
@@ -29,7 +31,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        if (lightboxIndex !== null) setLightboxIndex(null)
+        if (lightboxIndexRef.current !== null) setLightboxIndex(null)
         else onClose()
       }
       if (e.key === 'ArrowLeft') {
@@ -41,7 +43,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, lightboxIndex, galleryItems.length])
+  }, [onClose, galleryItems.length])
 
   return createPortal(
     /* Backdrop */
@@ -174,6 +176,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
                 {galleryItems.map((item, idx) => (
                   <button
                     key={item.id}
+                    aria-label={item.title || 'Photo'}
                     onClick={() => setLightboxIndex(idx)}
                     className="relative aspect-square overflow-hidden bg-slate-800 hover:opacity-90 transition-opacity"
                   >
@@ -314,6 +317,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
 
               {/* Close */}
               <button
+                aria-label="Fermer"
                 onClick={() => setLightboxIndex(null)}
                 className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
               >
@@ -325,6 +329,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
               {/* Prev */}
               {lightboxIndex > 0 && (
                 <button
+                  aria-label="Précédent"
                   onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1) }}
                   className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-slate-800/80 text-white hover:bg-slate-700 transition-colors"
                 >
@@ -337,6 +342,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
               {/* Next */}
               {lightboxIndex < galleryItems.length - 1 && (
                 <button
+                  aria-label="Suivant"
                   onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1) }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-slate-800/80 text-white hover:bg-slate-700 transition-colors"
                 >
@@ -360,6 +366,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
                 ) : (
                   <iframe
                     src={`https://www.youtube-nocookie.com/embed/${item.youtube_id}?autoplay=1`}
+                    sandbox="allow-scripts allow-same-origin allow-presentation"
                     title={item.title}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
