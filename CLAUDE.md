@@ -27,7 +27,7 @@ Seven tables in Supabase:
 - **`waypoints`** — `id, trip_id, lat, lng, url_large, title, flickr_id, taken_at`
 - **`planned_routes`** — `id, name, coordinates jsonb ([lng,lat][]), color`
 - **`videos`** — `id, youtube_id (unique), title, published_at, sort_order`
-- **`strava_tokens`** — `id, access_token, refresh_token, expires_at`
+- **`tokens`** — `id, access_token, refresh_token, expires_at, last_synced_at` (previously called `strava_tokens` in docs)
 - **`route_cities`** — `id, name, country, lat, lng, wiki_slug` — cities along the Pan-American route; unique on `(name, country)`
 - **`route_pois`** — `id, name, country, lat, lng, wiki_slug, type` — mountains/passes/lakes; `type IN ('mountain','pass','lake')`; unique on `(name, country)`
 
@@ -48,7 +48,7 @@ Seven tables in Supabase:
 - **`ElevationProfile.tsx`** — custom SVG chart with ResizeObserver (no chart library); shows gain, min/max alt, hover indicator
 - **`TripViewClient.tsx`** — client wrapper for `/trips/[id]`; owns shared `hoveredDistance` state passed as `externalHover` to both `ElevationProfile` and `MapClient`
 - **`MapClient.tsx`** — thin client wrapper that dynamically imports `Map` (SSR disabled); accepts optional `externalHover` prop
-- **`AboutModal.tsx`** — rendered via `createPortal` to `document.body` (escapes header `backdrop-filter` stacking context); three tabs: About (goal, bio, stats, videos, sponsors), Guide (feature explainer, data sources, suggestion email), Setup (bike config). Displays `APP_VERSION` from `lib/version.ts` in footer.
+- **`AboutModal.tsx`** — rendered via `createPortal` to `document.body` (escapes header `backdrop-filter` stacking context); four tabs: About (goal, bio, stats, sponsors), Media (photo+video gallery with fullscreen lightbox), Guide (feature explainer, data sources, suggestion email), Setup (bike config). Displays `APP_VERSION` from `lib/version.ts` in footer.
 - **`AboutButton.tsx`** — receives translated label as prop (avoids `useTranslations` hydration issue in client component)
 - **`lib/version.ts`** — single source of truth for `APP_VERSION`; increment on every user-visible change
 
@@ -76,4 +76,4 @@ Strava may omit start/end coordinates near home. Handle null/missing coordinate 
 Hotlink directly from Flickr URLs. Photos without GPS are stored but not placed on the map.
 
 ### Resetting sync for backfill
-To re-sync all activities: PATCH `strava_tokens.last_synced_at` to an early date via Supabase REST API, then trigger `/api/cron/strava`.
+To re-sync all activities: PATCH `tokens.last_synced_at` (table `tokens`, row `id=1`) to an early date via Supabase dashboard SQL or REST API, then trigger `/api/cron/strava` with the `CRON_SECRET` header.

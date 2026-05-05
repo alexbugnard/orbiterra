@@ -76,7 +76,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
                   border: tab === t2 ? '1px solid rgba(249,115,22,0.3)' : '1px solid transparent',
                 }}
               >
-                {t2 === 'about' ? t('title') : t2 === 'gallery' ? '📷' : t2 === 'guide' ? t('guideTab') : 'Setup'}
+                {t2 === 'about' ? t('title') : t2 === 'gallery' ? 'Media' : t2 === 'guide' ? t('guideTab') : 'Setup'}
               </button>
             ))}
           </div>
@@ -118,6 +118,13 @@ export function AboutModal({ onClose }: AboutModalProps) {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="border-t border-slate-700/50" />
+
+            <div>
+              <h4 className="text-base font-semibold text-orange-400 mb-2">{t('guideSectionMediaTitle')}</h4>
+              <p className="text-slate-300 leading-relaxed text-sm">{t('guideSectionMediaText')}</p>
             </div>
 
             <div className="border-t border-slate-700/50" />
