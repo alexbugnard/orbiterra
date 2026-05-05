@@ -16,9 +16,8 @@ export async function GET() {
       .order('taken_at', { ascending: false }),
     supabase
       .from('videos')
-      .select('id, youtube_id, title, published_at')
-      .order('sort_order', { ascending: true })
-      .order('published_at', { ascending: false }),
+      .select('id, youtube_id, title')
+      .order('sort_order', { ascending: true }),
   ])
 
   if (waypointsResult.error) return NextResponse.json({ error: waypointsResult.error.message }, { status: 500 })
@@ -37,12 +36,11 @@ export async function GET() {
     id: String(v.id),
     youtube_id: v.youtube_id as string,
     title: v.title ?? '',
-    date: v.published_at ?? '',
+    date: '',
   }))
 
-  const merged = [...photos, ...vids].sort((a, b) =>
-    b.date.localeCompare(a.date)
-  )
+  // Photos sorted by date, videos appended at end in sort_order
+  const merged = [...photos.sort((a, b) => b.date.localeCompare(a.date)), ...vids]
 
   return NextResponse.json(merged)
 }
