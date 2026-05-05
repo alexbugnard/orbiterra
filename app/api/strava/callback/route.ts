@@ -1,13 +1,8 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
 import { createSupabaseClient } from '@/lib/supabase'
 import { parseTokenResponse } from '@/lib/strava'
 
 export async function GET(request: Request) {
-  const session = await auth()
-  if (!session) {
-    return NextResponse.redirect(new URL('/admin/login', request.url))
-  }
 
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
