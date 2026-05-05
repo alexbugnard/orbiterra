@@ -5,12 +5,7 @@ import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
 import { BikeSetup } from './BikeSetup'
 import { APP_VERSION } from '@/lib/version'
-
-interface Video {
-  id: string
-  youtube_id: string
-  title: string
-}
+import type { GalleryItem } from '@/app/api/gallery/route'
 
 interface AboutModalProps {
   onClose: () => void
@@ -18,15 +13,15 @@ interface AboutModalProps {
 
 export function AboutModal({ onClose }: AboutModalProps) {
   const t = useTranslations('about')
-  const [videos, setVideos] = useState<Video[]>([])
-  const [activeVideo, setActiveVideo] = useState<string | null>(null)
-  const [tab, setTab] = useState<'about' | 'guide' | 'setup'>('about')
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([])
+  const [tab, setTab] = useState<'about' | 'gallery' | 'guide' | 'setup'>('about')
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
-  // Load videos
+  // Load gallery
   useEffect(() => {
-    fetch('/api/videos')
+    fetch('/api/gallery')
       .then((r) => r.json())
-      .then((data) => Array.isArray(data) && setVideos(data))
+      .then((data) => Array.isArray(data) && setGalleryItems(data))
       .catch(() => {})
   }, [])
 
@@ -34,13 +29,19 @@ export function AboutModal({ onClose }: AboutModalProps) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        if (activeVideo) setActiveVideo(null)
+        if (lightboxIndex !== null) setLightboxIndex(null)
         else onClose()
+      }
+      if (e.key === 'ArrowLeft') {
+        setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i))
+      }
+      if (e.key === 'ArrowRight') {
+        setLightboxIndex((i) => (i !== null && i < galleryItems.length - 1 ? i + 1 : i))
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, activeVideo])
+  }, [onClose, lightboxIndex, galleryItems.length])
 
   return createPortal(
     /* Backdrop */
@@ -62,7 +63,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-5 border-b border-slate-700/50 flex-shrink-0">
           <div className="flex items-center gap-1 bg-slate-800/60 rounded-xl p-1">
-            {(['about', 'guide', 'setup'] as const).map((t2) => (
+            {(['about', 'gallery', 'guide', 'setup'] as const).map((t2) => (
               <button
                 key={t2}
                 onClick={() => setTab(t2)}
@@ -73,7 +74,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
                   border: tab === t2 ? '1px solid rgba(249,115,22,0.3)' : '1px solid transparent',
                 }}
               >
-                {t2 === 'about' ? t('title') : t2 === 'guide' ? t('guideTab') : 'Setup'}
+                {t2 === 'about' ? t('title') : t2 === 'gallery' ? '📷' : t2 === 'guide' ? t('guideTab') : 'Setup'}
               </button>
             ))}
           </div>
@@ -163,6 +164,50 @@ export function AboutModal({ onClose }: AboutModalProps) {
           </div>
         )}
 
+        {/* Gallery tab */}
+        {tab === 'gallery' && (
+          <div className="flex-1 overflow-y-auto p-4">
+            {galleryItems.length === 0 ? (
+              <p className="text-slate-500 text-sm italic text-center mt-8">Aucune photo ou vidéo disponible.</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-1">
+                {galleryItems.map((item, idx) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setLightboxIndex(idx)}
+                    className="relative aspect-square overflow-hidden bg-slate-800 hover:opacity-90 transition-opacity"
+                  >
+                    {item.kind === 'photo' ? (
+                      <img
+                        src={item.url}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <>
+                        <img
+                          src={`https://img.youtube.com/vi/${item.youtube_id}/hqdefault.jpg`}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                              <polygon points="5,3 19,12 5,21"/>
+                            </svg>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Setup tab */}
         {tab === 'setup' && (
           <div className="flex-1 overflow-y-auto px-8 py-8">
@@ -211,57 +256,6 @@ export function AboutModal({ onClose }: AboutModalProps) {
 
           <div className="border-t border-slate-700/50" />
 
-          {/* Videos */}
-          <section>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-base">▶️</div>
-              <h3 className="text-lg font-semibold text-white">{t('videosTitle')}</h3>
-            </div>
-
-            {videos.length === 0 ? (
-              <p className="text-slate-500 text-sm italic">{t('videosEmpty')}</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {videos.map((video) => (
-                  <div key={video.id} className="rounded-xl overflow-hidden border border-slate-700 bg-slate-800/50">
-                    {activeVideo === video.youtube_id ? (
-                      <iframe
-                        src={`https://www.youtube-nocookie.com/embed/${video.youtube_id}?autoplay=1`}
-                        title={video.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="w-full aspect-video"
-                      />
-                    ) : (
-                      <button
-                        className="relative w-full group"
-                        onClick={() => setActiveVideo(video.youtube_id)}
-                      >
-                        {/* Thumbnail */}
-                        <img
-                          src={`https://img.youtube.com/vi/${video.youtube_id}/hqdefault.jpg`}
-                          alt={video.title}
-                          className="w-full aspect-video object-cover"
-                        />
-                        {/* Play overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
-                          <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                              <polygon points="5,3 19,12 5,21"/>
-                            </svg>
-                          </div>
-                        </div>
-                      </button>
-                    )}
-                    <div className="px-3 py-2 text-sm text-slate-300 font-medium truncate">{video.title}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <div className="border-t border-slate-700/50" />
-
           {/* Sponsors */}
           <section>
             <div className="flex items-center gap-3 mb-4">
@@ -303,6 +297,82 @@ export function AboutModal({ onClose }: AboutModalProps) {
           </section>
         </div>
         )}
+
+        {/* Lightbox */}
+        {lightboxIndex !== null && galleryItems[lightboxIndex] && (() => {
+          const item = galleryItems[lightboxIndex]
+          return (
+            <div
+              className="absolute inset-0 z-50 flex items-center justify-center"
+              style={{ background: 'rgba(0,0,0,0.95)' }}
+              onClick={() => setLightboxIndex(null)}
+            >
+              {/* Counter */}
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 text-slate-400 text-xs">
+                {lightboxIndex + 1} / {galleryItems.length}
+              </div>
+
+              {/* Close */}
+              <button
+                onClick={() => setLightboxIndex(null)}
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+
+              {/* Prev */}
+              {lightboxIndex > 0 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1) }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-slate-800/80 text-white hover:bg-slate-700 transition-colors"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="15,18 9,12 15,6"/>
+                  </svg>
+                </button>
+              )}
+
+              {/* Next */}
+              {lightboxIndex < galleryItems.length - 1 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1) }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-slate-800/80 text-white hover:bg-slate-700 transition-colors"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="9,18 15,12 9,6"/>
+                  </svg>
+                </button>
+              )}
+
+              {/* Content */}
+              <div
+                className="max-w-[90%] max-h-[85%] flex flex-col items-center gap-3"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {item.kind === 'photo' ? (
+                  <img
+                    src={item.url}
+                    alt={item.title}
+                    className="max-w-full max-h-[75vh] object-contain rounded-lg"
+                  />
+                ) : (
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${item.youtube_id}?autoplay=1`}
+                    title={item.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-[70vw] max-w-3xl aspect-video rounded-lg"
+                  />
+                )}
+                {item.title && (
+                  <p className="text-slate-300 text-sm text-center">{item.title}</p>
+                )}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Footer */}
         <div className="px-4 py-4 border-t border-slate-700/50 flex-shrink-0 flex flex-wrap items-center justify-between gap-3 md:px-8">
