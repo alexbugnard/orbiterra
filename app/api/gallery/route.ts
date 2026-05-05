@@ -8,7 +8,7 @@ export type GalleryItem =
 export async function GET() {
   const supabase = createSupabaseClient()
 
-  const [{ data: waypoints }, { data: videos }] = await Promise.all([
+  const [waypointsResult, videosResult] = await Promise.all([
     supabase
       .from('waypoints')
       .select('id, url_large, title, taken_at')
@@ -21,18 +21,21 @@ export async function GET() {
       .order('published_at', { ascending: false }),
   ])
 
-  const photos: GalleryItem[] = (waypoints ?? []).map((w) => ({
+  if (waypointsResult.error) return NextResponse.json({ error: waypointsResult.error.message }, { status: 500 })
+  if (videosResult.error) return NextResponse.json({ error: videosResult.error.message }, { status: 500 })
+
+  const photos: GalleryItem[] = (waypointsResult.data ?? []).map((w) => ({
     kind: 'photo',
     id: String(w.id),
-    url: w.url_large,
+    url: w.url_large as string,
     title: w.title ?? '',
     date: w.taken_at ?? '',
   }))
 
-  const vids: GalleryItem[] = (videos ?? []).map((v) => ({
+  const vids: GalleryItem[] = (videosResult.data ?? []).map((v) => ({
     kind: 'video',
     id: String(v.id),
-    youtube_id: v.youtube_id,
+    youtube_id: v.youtube_id as string,
     title: v.title ?? '',
     date: v.published_at ?? '',
   }))
