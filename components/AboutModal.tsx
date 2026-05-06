@@ -242,11 +242,17 @@ export function AboutModal({ onClose }: AboutModalProps) {
 
           {/* Vincent */}
           <section>
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-1">
               <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-base">🚴</div>
               <h3 className="text-lg font-semibold text-white">{t('vincentTitle')}</h3>
             </div>
-            <p className="text-slate-300 leading-relaxed mb-6">{t('vincentText')}</p>
+            <p className="text-slate-500 text-xs italic mb-4 ml-11">{t('vincentSubtitle')}</p>
+            <blockquote className="border-l-2 border-orange-500/50 pl-4 mb-5 text-orange-300 italic text-sm">{t('vincentQuote')}</blockquote>
+            <div className="space-y-3 mb-6">
+              {(['vincentText1', 'vincentText2', 'vincentText3', 'vincentText4'] as const).map((key) => (
+                <p key={key} className="text-slate-300 leading-relaxed text-sm">{t(key)}</p>
+              ))}
+            </div>
 
             {/* Stats grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -275,7 +281,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
             <p className="text-slate-300 leading-relaxed mb-6">{t('sponsorsText')}</p>
 
             {/* Sponsor logos */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
               {[
                 { name: 'RAB', sub: 'Equipment', url: 'https://rab.equipment', logo: '/sponsors/rab-logo.png' },
                 { name: 'JULBO', sub: 'Eyewear', url: 'https://www.julbo.com', logo: '/sponsors/julbo-logo.svg' },
@@ -303,6 +309,14 @@ export function AboutModal({ onClose }: AboutModalProps) {
                   )}
                 </a>
               ))}
+            </div>
+
+            {/* Coffee donation */}
+            <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-4">
+              <p className="text-slate-300 leading-relaxed text-sm mb-3">{t('coffeeText')}</p>
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-slate-700 text-slate-500 cursor-default">
+                ☕ {t('coffeeCta')}
+              </span>
             </div>
           </section>
         </div>
