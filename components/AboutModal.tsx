@@ -235,7 +235,11 @@ export function AboutModal({ onClose }: AboutModalProps) {
               <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-base">🎯</div>
               <h3 className="text-lg font-semibold text-white">{t('goalTitle')}</h3>
             </div>
-            <p className="text-slate-300 leading-relaxed">{t('goalText')}</p>
+            <div className="space-y-3">
+              {t('goalText').split('\n\n').map((para, i) => (
+                <p key={i} className="text-slate-300 leading-relaxed">{para}</p>
+              ))}
+            </div>
           </section>
 
           <div className="border-t border-slate-700/50" />
