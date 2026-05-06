@@ -127,49 +127,61 @@ export default async function LandingPage() {
 
       {/* Hero */}
       <div className="relative flex flex-col items-center justify-center flex-1 px-6 py-8 md:py-24 text-center overflow-hidden">
-        {/* Background image */}
+        {/* Background image — hidden on mobile, replaced by Vincent photo */}
         <Image
           src="/image_landing_page.png"
           alt=""
           fill
           priority
-          className="object-cover"
+          className="object-cover hidden md:block"
+        />
+        {/* Mobile background — Vincent photo only */}
+        <Image
+          src="/vincent_landing_page.jpeg"
+          alt=""
+          fill
+          priority
+          className="object-cover md:hidden"
         />
         {/* Dark overlay so text stays readable */}
         <div className="absolute inset-0 bg-slate-900/60" />
+{/* Vincent portrait — left side */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/vincent_landing_page.jpeg"
+          alt="Vincent"
+          className="absolute bottom-0 left-0 hidden md:block h-full w-auto object-cover object-bottom"
+          style={{ zIndex: 1, maskImage: 'linear-gradient(to right, black 70%, transparent 95%)', WebkitMaskImage: 'linear-gradient(to right, black 70%, transparent 95%)' }}
+        />
 
-        {/* Content — centered as before */}
-        <div className="relative z-10 max-w-2xl">
-          <div className="mb-4 md:mb-8">
+        {/* Desktop layout — normal flow */}
+        <div className="relative z-10 max-w-2xl hidden md:block">
+          <div className="mb-8">
             <AnimatedLogo>
               <Image
                 src="/logo/Capture d'écran 2026-04-20 085244.png"
                 alt="OrbiTerra"
                 width={192}
                 height={192}
-                className="mx-auto rounded-full bg-white/90 p-2 shadow-xl w-24 h-24 md:w-48 md:h-48"
+                className="mx-auto rounded-full bg-white/90 p-2 shadow-xl w-48 h-48"
                 loading="eager"
                 priority
               />
             </AnimatedLogo>
           </div>
-
-          <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-2 md:mb-4 leading-tight tracking-tight">
+          <h1 className="text-6xl font-extrabold text-white mb-4 leading-tight tracking-tight">
             Orbi<span className="text-orange-400">Terra</span>
           </h1>
-
-          <p className="text-base md:text-xl text-slate-300 font-medium mb-2 md:mb-4">
+          <p className="text-xl text-slate-300 font-medium mb-4">
             {content.title || 'Le voyage de Vincent'}
           </p>
-
-          <p className="text-sm md:text-lg text-slate-400 max-w-xl mx-auto mb-6 md:mb-10 leading-relaxed">
+          <p className="text-lg text-slate-400 max-w-xl mx-auto mb-10 leading-relaxed">
             {description || 'Follow my bike trips around the world, with photos and route details.'}
           </p>
-
           <AnimatedButton>
             <Link
               href="/map"
-              className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 md:px-8 md:py-4 rounded-xl font-semibold text-base md:text-lg transition-all shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 hover:-translate-y-0.5"
             >
               {t('cta')}
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -177,10 +189,52 @@ export default async function LandingPage() {
               </svg>
             </Link>
           </AnimatedButton>
+        </div>
 
-          {/* Globe — mobile only, below button */}
+        {/* Mobile layout — logo+title centered, button+globe pinned to bottom */}
+        <div className="md:hidden absolute inset-0 z-10 flex flex-col items-center justify-start pt-[60px] text-center px-6">
+          {/* Logo + title + subtitles — vertically centered */}
+          <div>
+            <div className="mb-[140px]">
+              <AnimatedLogo>
+                <Image
+                  src="/logo/Capture d'écran 2026-04-20 085244.png"
+                  alt="OrbiTerra"
+                  width={96}
+                  height={96}
+                  className="mx-auto rounded-full bg-white/90 p-2 shadow-xl w-24 h-24"
+                  loading="eager"
+                  priority
+                />
+              </AnimatedLogo>
+            </div>
+            <h1 className="text-4xl font-extrabold text-white mb-2 leading-tight tracking-tight">
+              Orbi<span className="text-orange-400">Terra</span>
+            </h1>
+            <p className="text-base text-slate-300 font-medium mb-2">
+              {content.title || 'Le voyage de Vincent'}
+            </p>
+            <p className="text-sm text-slate-400 max-w-xs mx-auto leading-relaxed">
+              {description || 'Follow my bike trips around the world, with photos and route details.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Mobile — button + globe pinned just above bottom banner */}
+        <div className="md:hidden absolute bottom-4 left-0 right-0 z-10 flex flex-col items-center gap-4 px-6">
+          <AnimatedButton>
+            <Link
+              href="/map"
+              className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-semibold text-base transition-all shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40"
+            >
+              {t('cta')}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </Link>
+          </AnimatedButton>
           {routeCoords.length > 1 && (
-            <div className="mt-4 flex md:hidden justify-center pointer-events-none">
+            <div className="pointer-events-none">
               <div className="w-36 h-36 opacity-90">
                 <GlobeMap coords={routeCoords} riddenCutoff={riddenCutoff} />
               </div>

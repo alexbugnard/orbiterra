@@ -70,7 +70,12 @@
       "Bash(git -C /c/Projects/vinz add lib/strava.ts)",
       "Bash(git -C /c/Projects/vinz commit -m \"feat: add fetchStravaStreams and detectBreaks to strava lib\")",
       "Bash(git commit *0)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('about',{}\\), indent=2, ensure_ascii=False\\)\\)\")",
+      "Bash(git -C /c/Projects/vinz add components/TripViewClient.tsx)",
+      "Bash(git -C /c/Projects/vinz commit -m \"feat: click video pill opens fullscreen modal overlay\")"
     ]
   }
 }
