@@ -828,8 +828,6 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       const map = L.map(containerRef.current, {
         zoomControl: false,
         minZoom: 3,
-        maxBounds: [[-85, -Infinity], [85, Infinity]],
-        maxBoundsViscosity: 1.0,
         preferCanvas: true,
       }).setView([46.2276, 2.2137], 6)
 
@@ -840,6 +838,13 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       }).addTo(map)
 
       mapRef.current = map
+
+      // Polar circles at 66.5634° N/S — span 3 world copies so they're visible when panning
+      const POLAR_LAT = 66.5634
+      const polarOpts = { color: '#94a3b8', weight: 1, opacity: 0.7, dashArray: '6, 8', interactive: false }
+      const lngs = Array.from({ length: 217 }, (_, i) => -540 + i * 5)
+      L.polyline(lngs.map(lng => [POLAR_LAT, lng]), polarOpts).addTo(map)
+      L.polyline(lngs.map(lng => [-POLAR_LAT, lng]), polarOpts).addTo(map)
 
       const glowLines: Polyline[] = []
       const tripHitZones: any[] = []
@@ -1685,7 +1690,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
           className="absolute z-[1000] flex flex-col items-center px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-900/85 backdrop-blur-sm"
           style={{ top: '71px', right: '16px' }}
         >
-          <LocalTime tz={currentTz} />
+          <LocalTime tz={currentTz} lat={vincentLat} lng={vincentLng} />
         </div>
       )}
 

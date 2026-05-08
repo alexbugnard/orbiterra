@@ -181,12 +181,14 @@ function computeAmericasProgress(
 ) {
   if (plannedCoords.length === 0 || cutoffIndex === 0) return null
 
-  const totalKm = plannedRouteKm(plannedCoords)
+  // Use known total rather than computed GPX length — generalized coords underestimate real distance
+  const TOTAL_ROUTE_KM = 25000
+  const computedTotal = plannedRouteKm(plannedCoords)
   const kmDone = plannedRouteKm(plannedCoords.slice(0, cutoffIndex + 1))
-  const pct = Math.min(100, (kmDone / totalKm) * 100)
-  const kmLeft = Math.round(totalKm - kmDone)
+  const pct = Math.min(100, (kmDone / computedTotal) * 100)
+  const kmLeft = Math.round(TOTAL_ROUTE_KM * (1 - kmDone / computedTotal))
 
-  return { pct: Math.round(pct * 10) / 10, kmLeft, totalKm: Math.round(totalKm) }
+  return { pct: Math.round(pct * 10) / 10, kmLeft, totalKm: TOTAL_ROUTE_KM }
 }
 
 export default async function MapPage() {

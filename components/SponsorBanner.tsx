@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Image from 'next/image'
 
 const SPONSORS = [
   { name: 'RAB', logo: '/sponsors/rab-logo.png', url: 'https://rab.equipment' },
@@ -55,13 +54,11 @@ export function SponsorBanner({ panelOpen, hidden }: Props) {
       <span className="hidden md:inline text-[10px] text-slate-500 uppercase tracking-wider leading-none whitespace-nowrap">Partner</span>
       <div className="h-5 md:h-6 flex items-center justify-center min-w-[40px] md:min-w-[56px]">
         {sponsor.logo ? (
-          <Image
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={sponsor.logo}
             alt={sponsor.name}
-            width={72}
-            height={24}
             className="h-5 md:h-6 w-auto max-w-[60px] md:max-w-[80px] object-contain"
-            unoptimized
           />
         ) : (
           <span className="text-white font-bold text-sm whitespace-nowrap">{sponsor.name}</span>

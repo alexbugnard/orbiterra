@@ -80,10 +80,12 @@ async function getStats() {
     }
 
     if (maxIndex > 0) {
-      const totalRouteKm = routeKm(planned)
+      // Use known total rather than computed GPX length — generalized coords underestimate real distance
+      const TOTAL_ROUTE_KM = 25000
+      const computedTotal = routeKm(planned)
       const doneKm = routeKm(planned.slice(0, maxIndex + 1))
-      const pct = Math.min(100, (doneKm / totalRouteKm) * 100)
-      progress = { pct: Math.round(pct * 10) / 10, kmLeft: Math.round(totalRouteKm - doneKm), totalKm: Math.round(totalRouteKm) }
+      const pct = Math.min(100, (doneKm / computedTotal) * 100)
+      progress = { pct: Math.round(pct * 10) / 10, kmLeft: Math.round(TOTAL_ROUTE_KM * (1 - doneKm / computedTotal)), totalKm: TOTAL_ROUTE_KM }
     }
 
     // Sample full route to 400 pts for SVG
@@ -191,11 +193,11 @@ export default async function LandingPage() {
           </AnimatedButton>
         </div>
 
-        {/* Mobile layout — logo+title centered, button+globe pinned to bottom */}
-        <div className="md:hidden absolute inset-0 z-10 flex flex-col items-center justify-start pt-[60px] text-center px-6">
-          {/* Logo + title + subtitles — vertically centered */}
+        {/* Mobile layout — single column, content top, button bottom, never overlapping */}
+        <div className="md:hidden absolute inset-0 z-10 flex flex-col items-center justify-between text-center px-6 pt-[60px] pb-4">
+          {/* Logo + title + subtitles */}
           <div>
-            <div className="mb-[140px]">
+            <div className="mb-6">
               <AnimatedLogo>
                 <Image
                   src="/logo/Capture d'écran 2026-04-20 085244.png"
@@ -218,28 +220,28 @@ export default async function LandingPage() {
               {description || 'Follow my bike trips around the world, with photos and route details.'}
             </p>
           </div>
-        </div>
 
-        {/* Mobile — button + globe pinned just above bottom banner */}
-        <div className="md:hidden absolute bottom-4 left-0 right-0 z-10 flex flex-col items-center gap-4 px-6">
-          <AnimatedButton>
-            <Link
-              href="/map"
-              className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-semibold text-base transition-all shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40"
-            >
-              {t('cta')}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </Link>
-          </AnimatedButton>
-          {routeCoords.length > 1 && (
-            <div className="pointer-events-none">
-              <div className="w-36 h-36 opacity-90">
-                <GlobeMap coords={routeCoords} riddenCutoff={riddenCutoff} />
+          {/* Button + globe pinned to bottom */}
+          <div className="flex flex-col items-center gap-4">
+            <AnimatedButton>
+              <Link
+                href="/map"
+                className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-semibold text-base transition-all shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40"
+              >
+                {t('cta')}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </Link>
+            </AnimatedButton>
+            {routeCoords.length > 1 && (
+              <div className="pointer-events-none">
+                <div className="w-36 h-36 opacity-90">
+                  <GlobeMap coords={routeCoords} riddenCutoff={riddenCutoff} />
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
