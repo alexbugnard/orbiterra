@@ -63,13 +63,13 @@ export function AboutModal({ onClose }: AboutModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-5 border-b border-slate-700/50 flex-shrink-0">
-          <div className="flex items-center gap-1 bg-slate-800/60 rounded-xl p-1">
+        <div className="flex items-center justify-between px-4 md:px-8 py-4 md:py-5 border-b border-slate-700/50 flex-shrink-0 gap-2">
+          <div className="flex items-center gap-0.5 bg-slate-800/60 rounded-xl p-1 min-w-0">
             {(['about', 'gallery', 'guide', 'setup'] as const).map((t2) => (
               <button
                 key={t2}
                 onClick={() => setTab(t2)}
-                className="px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                className="px-2 md:px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-colors whitespace-nowrap"
                 style={{
                   background: tab === t2 ? 'rgba(249,115,22,0.15)' : 'transparent',
                   color: tab === t2 ? '#f97316' : '#94a3b8',
