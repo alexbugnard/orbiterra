@@ -634,14 +634,14 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       })
       const charmeyMarker = L.marker(charmeyLatLng(), { icon: charmeyIcon, pane: 'markerPane', interactive: false }).addTo(map)
 
-      // Drag support
+      // Drag support — use pixel coords to avoid antimeridian wrap issues
       let dragging = false
-      let lastLatLng: any = null
+      let lastPx: { x: number; y: number } | null = null
 
       function onLayerMouseDown(e: any) {
         L.DomEvent.stop(e)
         dragging = true
-        lastLatLng = e.latlng
+        lastPx = map.latLngToContainerPoint(e.latlng)
         map.dragging.disable()
         const container = map.getContainer?.()
         if (container) container.style.cursor = 'grabbing'
@@ -650,21 +650,23 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       }
 
       function onMapMouseMove(e: any) {
-        if (!dragging || !lastLatLng) return
-        const dLat = e.latlng.lat - lastLatLng.lat
-        const dLng = e.latlng.lng - lastLatLng.lng
+        if (!dragging || !lastPx) return
+        const curPx = map.latLngToContainerPoint(e.latlng)
+        const curLL = map.containerPointToLatLng(curPx)
+        const lastLL = map.containerPointToLatLng(lastPx)
+        const dLat = curLL.lat - lastLL.lat
+        const dLng = curLL.lng - lastLL.lng
         trueSizeOffsetRef.current = [
           trueSizeOffsetRef.current[0] + dLat,
           trueSizeOffsetRef.current[1] + dLng,
         ]
-        lastLatLng = e.latlng
         layer.setLatLngs(translated())
         charmeyMarker.setLatLng(charmeyLatLng())
       }
 
       function onMapMouseUp() {
         dragging = false
-        lastLatLng = null
+        lastPx = null
         map.dragging.enable()
         map.off('mousemove', onMapMouseMove)
         map.off('mouseup', onMapMouseUp)
