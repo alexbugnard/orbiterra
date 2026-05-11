@@ -457,9 +457,9 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       function finalize() {
         measureDrawingRef.current = false
         measureRubberRef.current?.remove(); measureRubberRef.current = null
-        map.off('click', onMapClick)
-        map.off('mousemove', onMouseMove)
-        map.off('dblclick', onDblClick)
+        map!.off('click', onMapClick)
+        map!.off('mousemove', onMouseMove)
+        map!.off('dblclick', onDblClick)
         window.removeEventListener('keydown', onKeyDown);
         (map.getContainer?.() ?? document.body).style.cursor = ''
         // Redraw final polyline without rubber band
