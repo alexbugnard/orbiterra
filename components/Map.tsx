@@ -634,42 +634,43 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       })
       const charmeyMarker = L.marker(charmeyLatLng(), { icon: charmeyIcon, pane: 'markerPane', interactive: false }).addTo(map)
 
-      // Drag support — use pixel coords to avoid antimeridian wrap issues
-      let dragging = false
-      let lastPx: any = null
+      // Drag support — document-level events so dragging works even outside the map
+      let lastClientX = 0
+      let lastClientY = 0
 
-      function onLayerMouseDown(e: any) {
-        L.DomEvent.stop(e)
-        dragging = true
-        lastPx = map.latLngToContainerPoint(e.latlng)
-        map.dragging.disable()
-        const container = map.getContainer?.()
-        if (container) container.style.cursor = 'grabbing'
-        map.on('mousemove', onMapMouseMove)
-        map.on('mouseup', onMapMouseUp)
-      }
-
-      function onMapMouseMove(e: any) {
-        if (!dragging || !lastPx) return
-        const curPx = map.latLngToContainerPoint(e.latlng)
+      function onDocMouseMove(e: MouseEvent) {
+        const rect = map.getContainer().getBoundingClientRect()
+        const curPx = L.point(e.clientX - rect.left, e.clientY - rect.top)
+        const lastPx = L.point(lastClientX - rect.left, lastClientY - rect.top)
         const curLL = map.containerPointToLatLng(curPx)
         const lastLL = map.containerPointToLatLng(lastPx)
-        const dLat = curLL.lat - lastLL.lat
-        const dLng = curLL.lng - lastLL.lng
         trueSizeOffsetRef.current = [
-          trueSizeOffsetRef.current[0] + dLat,
-          trueSizeOffsetRef.current[1] + dLng,
+          trueSizeOffsetRef.current[0] + curLL.lat - lastLL.lat,
+          trueSizeOffsetRef.current[1] + curLL.lng - lastLL.lng,
         ]
+        lastClientX = e.clientX
+        lastClientY = e.clientY
         layer.setLatLngs(translated())
         charmeyMarker.setLatLng(charmeyLatLng())
       }
 
-      function onMapMouseUp() {
-        dragging = false
-        lastPx = null
+      function onDocMouseUp() {
         map.dragging.enable()
-        map.off('mousemove', onMapMouseMove)
-        map.off('mouseup', onMapMouseUp)
+        const container = map.getContainer?.()
+        if (container) container.style.cursor = 'grab'
+        document.removeEventListener('mousemove', onDocMouseMove)
+        document.removeEventListener('mouseup', onDocMouseUp)
+      }
+
+      function onLayerMouseDown(e: any) {
+        L.DomEvent.stop(e)
+        lastClientX = e.originalEvent.clientX
+        lastClientY = e.originalEvent.clientY
+        map.dragging.disable()
+        const container = map.getContainer?.()
+        if (container) container.style.cursor = 'grabbing'
+        document.addEventListener('mousemove', onDocMouseMove)
+        document.addEventListener('mouseup', onDocMouseUp)
       }
 
       layer.on('mousedown', onLayerMouseDown)
@@ -680,8 +681,8 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
         layer.remove()
         charmeyMarker.remove()
         trueSizeLayerRef.current = null
-        map.off('mousemove', onMapMouseMove)
-        map.off('mouseup', onMapMouseUp)
+        document.removeEventListener('mousemove', onDocMouseMove)
+        document.removeEventListener('mouseup', onDocMouseUp)
         map.dragging.enable();
         (map.getContainer?.() ?? document.body).style.cursor = ''
       }
