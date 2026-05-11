@@ -418,6 +418,14 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       const x = s1*x1 + s2*x2, y = s1*y1 + s2*y2, z = s1*z1 + s2*z2
       result.push([toDeg(Math.atan2(z, Math.sqrt(x*x + y*y))), toDeg(Math.atan2(y, x))])
     }
+    // Unwrap longitudes so consecutive points never jump >180° (antimeridian fix)
+    for (let i = 1; i < result.length; i++) {
+      let lng = result[i][1]
+      const prev = result[i - 1][1]
+      while (lng - prev > 180) lng -= 360
+      while (lng - prev < -180) lng += 360
+      result[i] = [result[i][0], lng]
+    }
     return result
   }
 
@@ -604,9 +612,10 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
 
       const layer = L.polygon(translated(), {
         color: '#ef4444',
-        weight: 2,
+        weight: 10,
+        opacity: 0.15,
         fillColor: '#ef4444',
-        fillOpacity: 0.18,
+        fillOpacity: 0.25,
         dashArray: '6 4',
         pane: 'overlayPane',
       }).addTo(map)
