@@ -47,13 +47,13 @@ export function AboutModal({ onClose }: AboutModalProps) {
   return createPortal(
     /* Backdrop */
     <div
-      className="fixed inset-0 z-[2000] flex items-center justify-center p-6"
+      className="fixed inset-0 z-[2000] flex items-center justify-center pt-safe p-2 md:p-6"
       style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
       {/* Modal */}
       <div
-        className="relative flex flex-col overflow-hidden w-[95vw] h-[92vh] rounded-2xl md:w-4/5 md:h-4/5"
+        className="relative flex flex-col overflow-hidden w-full h-full rounded-xl md:w-4/5 md:h-4/5 md:rounded-2xl"
         style={{
           background: 'rgba(15,23,42,0.97)',
           border: '1px solid rgba(51,65,85,0.8)',
@@ -156,6 +156,17 @@ export function AboutModal({ onClose }: AboutModalProps) {
             <div className="border-t border-slate-700/50" />
 
             <div>
+              <h4 className="text-base font-semibold text-orange-400 mb-2">{t('guideSectionHomeScreenTitle')}</h4>
+              <p className="text-slate-300 leading-relaxed text-sm mb-3">{t('guideSectionHomeScreenText')}</p>
+              <ul className="space-y-1.5">
+                <li className="text-slate-300 text-sm">{t('guideSectionHomeScreenIos')}</li>
+                <li className="text-slate-300 text-sm">{t('guideSectionHomeScreenAndroid')}</li>
+              </ul>
+            </div>
+
+            <div className="border-t border-slate-700/50" />
+
+            <div>
               <h4 className="text-base font-semibold text-orange-400 mb-2">{t('guideSectionSuggestTitle')}</h4>
               <p className="text-slate-300 leading-relaxed text-sm mb-3">{t('guideSectionSuggestText')}</p>
               <a
@@ -219,7 +230,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
 
         {/* Setup tab */}
         {tab === 'setup' && (
-          <div className="flex-1 overflow-y-auto px-8 py-8">
+          <div className="flex-1 overflow-y-auto py-4 md:py-8 md:px-8">
             <BikeSetup />
           </div>
         )}
@@ -317,9 +328,14 @@ export function AboutModal({ onClose }: AboutModalProps) {
             {/* Coffee donation */}
             <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-4">
               <p className="text-slate-300 leading-relaxed text-sm mb-3">{t('coffeeText')}</p>
-              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-slate-700 text-slate-500 cursor-default">
+              <a
+                href="https://buymeacoffee.com/vincentmorisetti"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 transition-colors"
+              >
                 ☕ {t('coffeeCta')}
-              </span>
+              </a>
             </div>
           </section>
         </div>

@@ -8,7 +8,8 @@
     "kmRidden": "km parcourus",
     "ridesTracked": "étapes enregistrées",
     "routeProgress": "Progression du parcours",
-    "remaining": "restants"
+    "remaining": "restants",
+    "coffeeLinkText": "{kmLeft} km restants · 1 café peut faire la différence"
   },
   "map": {
     "rides": "Étapes",
@@ -88,7 +89,31 @@
     "guideSectionDataWiki": "Descriptions des villes et points d'intérêt : chargées à la demande depuis Wikipedia, dans votre langue si disponible, sinon en anglais.",
     "guideSectionFreshnessTitle": "Actualité des données",
     "guideSectionFreshnessText": "Toutes les données (étapes, photos, vidéos, météo) sont synchronisées une fois par jour à 6 h UTC. La progression de Vincent dépend de sa capacité à publier ses activités Strava sur le terrain. Il peut s'écouler plusieurs jours sans mise à jour — c'est normal et ne signifie pas que le voyage est arrêté.",
+    "guideSectionHomeScreenTitle": "Accès rapide depuis votre téléphone",
+    "guideSectionHomeScreenText": "La carte fonctionne bien sur mobile. Vous pouvez ajouter un raccourci sur votre écran d'accueil pour y accéder en un geste, sans passer par un navigateur — pratique pour suivre l'avancée du voyage au quotidien. Il s'agit d'un raccourci vers le site web, pas d'une application à télécharger.",
+    "guideSectionHomeScreenIos": "iPhone — Ouvrez cette page dans Safari, appuyez sur le bouton Partager, puis « Sur l'écran d'accueil ».",
+    "guideSectionHomeScreenAndroid": "Android — Ouvrez cette page dans Chrome, appuyez sur le menu (trois points), puis « Ajouter à l'écran d'accueil ».",
     "guideSectionSuggestTitle": "Suggérer une fonctionnalité",
     "guideSectionSuggestText": "Vous avez une idée pour améliorer la carte ou le site ? Envoyez-nous un message."
+  },
+  "bikeSetup": {
+    "viewProduct": "Voir le produit",
+"frame": "Cadre",
+    "handlebar": "Guidon",
+    "stem": "Potence",
+    "extensions": "Prolongateurs",
+    "saddle": "Selle",
+    "forkbag": "Sacoche de fourche",
+    "rearpannier": "Sacoches arrières latérales",
+    "reartopbag": "Sacoche arrière top",
+    "aerobag": "Sacoche aéro prolongateurs",
+    "framebag": "Sacoche de cadre",
+    "toptubebag": "Sacoche top cadre",
+    "drivetrain": "Groupe / Transmission",
+    "brakes": "Freins",
+    "tires": "Pneus",
+    "dynamo": "Moyeu dynamo",
+    "lighting": "Éclairage",
+    "wheels": "Roues"
   }
 }

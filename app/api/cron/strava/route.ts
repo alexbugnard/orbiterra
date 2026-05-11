@@ -99,6 +99,14 @@ export async function runStravaSync(): Promise<{ upserted: number; fetched: numb
       continue
     }
 
+    // Backfill journal from Strava description if not yet set manually
+    if (activity.description && tripRow?.id) {
+      await supabase.from('trips')
+        .update({ journal_fr: activity.description, journal_en: activity.description })
+        .eq('strava_id', activity.id)
+        .is('journal_fr', null)
+    }
+
     // Sync Strava photos for this activity
     if (tripRow?.id) {
       const photos = await fetchStravaPhotos(accessToken, activity.id)

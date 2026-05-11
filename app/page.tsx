@@ -121,10 +121,28 @@ export default async function LandingPage() {
 
       {/* Globe — absolute right, vertically centered, full page height */}
       {routeCoords.length > 1 && (
-        <div className="absolute hidden md:flex top-0 bottom-0 z-10 items-center pointer-events-none" style={{ right: '126px', marginTop: '-130px' }}>
-          <div className="w-[min(38vh,340px)] aspect-square opacity-90">
+        <div className="absolute hidden md:flex flex-col top-0 bottom-0 z-10 items-center justify-center gap-4" style={{ right: '126px', marginTop: '-130px' }}>
+          <div className="w-[min(38vh,340px)] aspect-square opacity-90 pointer-events-none">
             <GlobeMap coords={routeCoords} riddenCutoff={riddenCutoff} />
           </div>
+          {progress && (
+            <a
+              href="https://buymeacoffee.com/vincentmorisetti"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-semibold transition-all duration-300 hover:scale-105 hover:brightness-110 whitespace-nowrap"
+              style={{
+                fontSize: '0.7rem',
+                background: 'linear-gradient(135deg, #f59e0b 0%, #f97316 50%, #fbbf24 100%)',
+                backgroundSize: '200% 200%',
+                boxShadow: '0 0 16px rgba(251,191,36,0.45), 0 2px 8px rgba(0,0,0,0.4)',
+                animation: 'shimmer 3s ease-in-out infinite',
+                color: '#1c1917',
+              }}
+            >
+              ☕ {t('coffeeLinkText', { kmLeft: progress.kmLeft.toLocaleString() })}
+            </a>
+          )}
         </div>
       )}
 
@@ -268,9 +286,17 @@ export default async function LandingPage() {
                 </div>
               )}
             </div>
+
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes shimmer {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+      `}</style>
     </main>
   )
 }

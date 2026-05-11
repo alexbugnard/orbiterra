@@ -8,7 +8,8 @@
     "kmRidden": "km ridden",
     "ridesTracked": "rides tracked",
     "routeProgress": "Route progress",
-    "remaining": "remaining"
+    "remaining": "remaining",
+    "coffeeLinkText": "{kmLeft} km left · 1 coffee can make a difference"
   },
   "map": {
     "rides": "Rides",
@@ -88,7 +89,31 @@
     "guideSectionDataWiki": "City and point-of-interest descriptions: fetched on demand from Wikipedia, in your language when available, otherwise in English.",
     "guideSectionFreshnessTitle": "How up to date is the data?",
     "guideSectionFreshnessText": "All data (rides, photos, videos, weather) is synchronised once a day at 06:00 UTC. Vincent's progress depends on his ability to publish Strava activities from the field. Several days may pass without an update — this is normal and does not mean the journey has stopped.",
+    "guideSectionHomeScreenTitle": "Quick access from your phone",
+    "guideSectionHomeScreenText": "The map works well on mobile. You can add a shortcut to your home screen to open it in one tap, without going through a browser — handy for checking Vincent's progress day to day. This creates a shortcut to the website, not a downloaded app.",
+    "guideSectionHomeScreenIos": "iPhone — Open this page in Safari, tap the Share button, then \"Add to Home Screen\".",
+    "guideSectionHomeScreenAndroid": "Android — Open this page in Chrome, tap the menu (three dots), then \"Add to Home Screen\".",
     "guideSectionSuggestTitle": "Suggest a feature",
     "guideSectionSuggestText": "Have an idea to improve the map or the site? Send us a message."
+  },
+  "bikeSetup": {
+    "viewProduct": "View product",
+"frame": "Frame",
+    "handlebar": "Handlebars",
+    "stem": "Stem",
+    "extensions": "Extensions",
+    "saddle": "Saddle",
+    "forkbag": "Fork bag",
+    "rearpannier": "Rear panniers",
+    "reartopbag": "Rear top bag",
+    "aerobag": "Aero bar bag",
+    "framebag": "Frame bag",
+    "toptubebag": "Top tube bag",
+    "drivetrain": "Drivetrain",
+    "brakes": "Brakes",
+    "tires": "Tires",
+    "dynamo": "Dynamo hub",
+    "lighting": "Lighting",
+    "wheels": "Wheels"
   }
 }
