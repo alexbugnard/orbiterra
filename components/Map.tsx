@@ -439,7 +439,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
     if (!L) return
 
     function setup() {
-      const map = mapRef.current
+      const map = mapRef.current as NonNullable<typeof mapRef.current>
       if (!map) return
 
       if (!measureActive) {
@@ -457,9 +457,9 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       function finalize() {
         measureDrawingRef.current = false
         measureRubberRef.current?.remove(); measureRubberRef.current = null
-        map!.off('click', onMapClick)
-        map!.off('mousemove', onMouseMove)
-        map!.off('dblclick', onDblClick)
+        map.off('click', onMapClick)
+        map.off('mousemove', onMouseMove)
+        map.off('dblclick', onDblClick)
         window.removeEventListener('keydown', onKeyDown);
         (map.getContainer?.() ?? document.body).style.cursor = ''
         // Redraw final polyline without rubber band
@@ -579,7 +579,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
     if (!L) return
 
     function setup() {
-      const map = mapRef.current
+      const map = mapRef.current as NonNullable<typeof mapRef.current>
       if (!map) return
 
       if (!trueSizeActive) {
