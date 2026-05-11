@@ -6,6 +6,7 @@ import { GlobeMap } from '@/components/GlobeMap'
 import { CountUp } from '@/components/CountUp'
 import { AnimatedLogo, AnimatedButton } from '@/components/HeroAnimated'
 import { LocalTime } from '@/components/LocalTime'
+import { AlternatingBackground } from '@/components/AlternatingBackground'
 // @ts-ignore
 import tzlookup from 'tz-lookup'
 
@@ -129,15 +130,9 @@ export default async function LandingPage() {
 
       {/* Hero */}
       <div className="relative flex flex-col items-center justify-center flex-1 px-6 py-8 md:py-24 text-center overflow-hidden">
-        {/* Background image — hidden on mobile, replaced by Vincent photo */}
-        <Image
-          src="/image_landing_page.png"
-          alt=""
-          fill
-          priority
-          className="object-cover hidden md:block"
-        />
-        {/* Mobile background — Vincent photo only */}
+        {/* Desktop background — alternates between two images every second */}
+        <AlternatingBackground />
+        {/* Mobile background */}
         <Image
           src="/vincent_landing_page.jpeg"
           alt=""
@@ -147,14 +142,6 @@ export default async function LandingPage() {
         />
         {/* Dark overlay so text stays readable */}
         <div className="absolute inset-0 bg-slate-900/60" />
-{/* Vincent portrait — left side */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/vincent_landing_page.jpeg"
-          alt="Vincent"
-          className="absolute bottom-0 left-0 hidden md:block h-full w-auto object-cover object-bottom"
-          style={{ zIndex: 1, maskImage: 'linear-gradient(to right, black 70%, transparent 95%)', WebkitMaskImage: 'linear-gradient(to right, black 70%, transparent 95%)' }}
-        />
 
         {/* Desktop layout — normal flow */}
         <div className="relative z-10 max-w-2xl hidden md:block">

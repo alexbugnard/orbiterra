@@ -27,7 +27,8 @@
     "react-dom": "19.2.4",
     "server-only": "^0.0.1",
     "topojson-client": "^3.1.0",
-    "tz-lookup": "^6.1.25"
+    "tz-lookup": "^6.1.25",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

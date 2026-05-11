@@ -6,7 +6,6 @@ import { useTranslations } from 'next-intl'
 import { BikeSetup } from './BikeSetup'
 import { APP_VERSION } from '@/lib/version'
 import type { GalleryItem } from '@/app/api/gallery/route'
-
 interface AboutModalProps {
   onClose: () => void
 }

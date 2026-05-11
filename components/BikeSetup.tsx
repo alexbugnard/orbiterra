@@ -4,21 +4,23 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 
 const HOTSPOTS = [
-  { id: 'frame',        x: 50,  y: 45, label: 'Cadre',               model: 'Surly Long Haul Trucker 29" (acier)' },
-  { id: 'fork',         x: 78,  y: 50, label: 'Fourche',             model: 'Surly LHT OEM — acier chromoly' },
-  { id: 'handlebar',    x: 70,  y: 25, label: 'Cintre',              model: 'Nitto Noodle B115AA 44 cm' },
-  { id: 'saddle',       x: 34,  y: 18, label: 'Selle',               model: 'Brooks B17 Standard (cuir)' },
-  { id: 'saddlebag',    x: 20,  y: 22, label: 'Sacoche de selle',    model: 'Ortlieb Seat-Pack 16.5L' },
-  { id: 'rearpannier',  x: 13,  y: 48, label: 'Sacoches arrière',    model: 'Ortlieb Back-Roller Classic 2×20L' },
-  { id: 'framebag',     x: 50,  y: 54, label: 'Sacoche de cadre',    model: 'Revelate Designs Tangle Frame Bag' },
-  { id: 'frontbag',     x: 76,  y: 36, label: 'Sacoche de guidon',   model: 'Ortlieb Handlebar-Pack 15L' },
-  { id: 'smallbags',    x: 62,  y: 30, label: 'Sacoches de potence', model: 'Revelate Designs Mountain Feedbag ×2' },
-  { id: 'drivetrain',   x: 47,  y: 75, label: 'Groupe / transmission', model: 'Shimano Deore XT 3×9 — cassette 11-36' },
-  { id: 'brakes',       x: 80,  y: 60, label: 'Freins',              model: 'Shimano Deore BR-M6100 — disque hydraulique' },
-  { id: 'tires',        x: 84,  y: 82, label: 'Pneus',               model: 'Schwalbe Marathon Mondial 29×2.0 — 127 tpi' },
-  { id: 'dynamo',       x: 83,  y: 68, label: 'Moyeu dynamo',        model: 'SON 28 Delux (Schmidt) — 6V / 3W' },
-  { id: 'lighting',     x: 73,  y: 44, label: 'Éclairage',           model: 'Busch & Müller IQ-X + Toplight Line' },
-  { id: 'bottle',       x: 55,  y: 62, label: 'Porte-bidon',         model: 'Salsa Anything Cage HD ×2' },
+  { id: 'frame',           x: 50, y: 50, label: 'Cadre',                        model: 'Fairlight Secan 3.0' },
+  { id: 'handlebar',       x: 48, y: 40, label: 'Guidon',                        model: 'Deda Gerra' },
+  { id: 'stem',            x: 46, y: 36, label: 'Potence',                       model: 'Deda' },
+  { id: 'extensions',      x: 52, y: 24, label: 'Prolongateurs',                 model: 'Deda Parabolica Pro' },
+  { id: 'saddle',          x: 30, y: 32, label: 'Selle',                         model: '' },
+  { id: 'forkbag',         x: 67, y: 60, label: 'Sacoche de fourche',            model: 'Switch Pannier 10L' },
+  { id: 'rearpannier',     x: 20, y: 40, label: 'Sacoches arrières latérales',   model: 'Switch Pannier 10L' },
+  { id: 'reartopbag',      x: 20, y: 50, label: 'Sacoche arrière top',           model: 'Switch Top Bag 15L' },
+  { id: 'aerobag',         x: 53, y: 29, label: 'Sacoche aéro prolongateurs',    model: 'Race Bar Bag Aero 7L' },
+  { id: 'framebag',        x: 40, y: 45, label: 'Sacoche de cadre',              model: 'Frame Bag 4.5L' },
+  { id: 'toptubebag',      x: 40, y: 38, label: 'Sacoche top cadre',             model: 'Race Top Tube Bag 2L' },
+  { id: 'drivetrain',      x: 25, y: 66, label: 'Groupe / Transmission',         model: 'Shimano GRX 12v' },
+  { id: 'brakes',          x: 80, y: 36, label: 'Freins',                        model: 'Shimano GRX 12v' },
+  { id: 'tires',           x: 72, y: 75, label: 'Pneus',                         model: '' },
+  { id: 'dynamo',          x: 50, y: 50, label: 'Moyeu dynamo',                  model: 'SON28' },
+  { id: 'lighting',        x: 50, y: 50, label: 'Éclairage',                     model: 'Sinewave' },
+  { id: 'wheels',          x: 57, y: 51, label: 'Roues',                         model: 'Duke Baccara WRX 36m' },
 ]
 
 const TIP_W = 164
