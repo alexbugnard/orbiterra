@@ -636,7 +636,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
 
       // Drag support — use pixel coords to avoid antimeridian wrap issues
       let dragging = false
-      let lastPx: { x: number; y: number } | null = null
+      let lastPx: any = null
 
       function onLayerMouseDown(e: any) {
         L.DomEvent.stop(e)
