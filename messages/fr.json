@@ -32,7 +32,15 @@
     "vincentMarkerLabel": "📍 Vincent",
     "vincentLastSeen": "Dernière position connue",
     "showMore": "Voir plus",
-    "showLess": "Voir moins"
+    "showLess": "Voir moins",
+    "geoTools": "Outils",
+    "measureTool": "Mesurer une distance",
+    "trueSizeShow": "Vraie taille (CH)",
+    "trueSizeHide": "Masquer la Suisse",
+    "timeZoneShow": "Fuseaux horaires",
+    "timeZoneHide": "Masquer les fuseaux",
+    "daylightShow": "Lumière du jour",
+    "daylightHide": "Masquer le jour/nuit"
   },
   "trip": {
     "backToMap": "Retour à la carte",
