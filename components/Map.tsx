@@ -752,7 +752,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
         const layer = L.geoJSON(data, {
           style: (feature: any) => {
             const key = Math.round(feature?.properties?.zone ?? 0)
-            const color = TZ_COLORS[String(key)] ?? '#64748b'
+            const color = TZ_COLORS[key] ?? '#64748b'
             return { color: '#0f172a', weight: 0.3, fillColor: color, fillOpacity: 0.22 }
           },
           onEachFeature: (feature: any, lyr: any) => {
