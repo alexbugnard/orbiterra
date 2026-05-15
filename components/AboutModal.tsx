@@ -129,18 +129,44 @@ export function AboutModal({ onClose }: AboutModalProps) {
             <div className="border-t border-slate-700/50" />
 
             <div>
+              <h4 className="text-base font-semibold text-orange-400 mb-4">{t('guideSectionGeoToolsTitle')}</h4>
+              <div className="space-y-4">
+                {([
+                  'guideSectionGeoToolsRouteProfil',
+                  'guideSectionGeoToolsMeasure',
+                  'guideSectionGeoToolsTrueSize',
+                  'guideSectionGeoToolsTimezone',
+                  'guideSectionGeoToolsDaylight',
+                  'guideSectionGeoToolsPopDensity',
+                  'guideSectionGeoToolsFires',
+                  'guideSectionGeoToolsWildlife',
+                ] as const).map((key) => (
+                  <div key={key} className="flex gap-3">
+                    <div className="mt-1 w-1.5 h-1.5 rounded-full bg-orange-500/60 flex-shrink-0" />
+                    <p className="text-slate-300 leading-relaxed text-sm">{t(key)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-slate-700/50" />
+
+            <div>
               <h4 className="text-base font-semibold text-orange-400 mb-4">{t('guideSectionDataTitle')}</h4>
               <div className="space-y-4">
                 {([
-                  ['Strava / Flickr', 'guideSectionDataStrava'],
-                  ['Flickr', 'guideSectionDataFlickr'],
-                  ['YouTube', 'guideSectionDataYoutube'],
-                  ['Open-Meteo', 'guideSectionDataWeather'],
-                  ['Wikipedia', 'guideSectionDataWiki'],
-                ] as const).map(([label, key]) => (
+                  ['Strava', 'guideSectionDataStrava', 'https://www.strava.com'],
+                  ['YouTube', 'guideSectionDataYoutube', 'https://www.youtube.com'],
+                  ['Open-Meteo', 'guideSectionDataWeather', 'https://open-meteo.com'],
+                  ['Wikipedia', 'guideSectionDataWiki', 'https://www.wikipedia.org'],
+                  ['Copernicus', 'guideSectionDataPopDensity', 'https://human-settlement.emergency.copernicus.eu'],
+                  ['Blitzortung', 'guideSectionDataLightning', 'https://www.blitzortung.org'],
+                  ['GBIF', 'guideSectionDataGbif', 'https://www.gbif.org'],
+                  ['NASA MODIS', 'guideSectionDataFires', 'https://firms.modaps.eosdis.nasa.gov'],
+                ] as const).map(([label, key, url]) => (
                   <div key={key} className="flex gap-3">
-                    <span className="mt-0.5 text-xs font-semibold text-slate-500 w-28 flex-shrink-0">{label}</span>
-                    <p className="text-slate-300 leading-relaxed text-sm">{t(key)}</p>
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="mt-0.5 text-xs font-semibold text-slate-500 hover:text-orange-400 transition-colors w-28 flex-shrink-0 underline underline-offset-2 decoration-slate-700 hover:decoration-orange-400/50">{label}</a>
+                    <p className="text-slate-300 leading-relaxed text-sm">{t(key as any)}</p>
                   </div>
                 ))}
               </div>

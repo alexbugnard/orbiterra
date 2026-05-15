@@ -385,7 +385,46 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
   // Daylight tool
   const [daylightActive, setDaylightActive] = useState(false)
   const daylightLayerRef = useRef<any>(null)
+
+  // Population density tool
+  const [popDensityActive, setPopDensityActive] = useState(false)
+  const [popDensityOpacity, setPopDensityOpacity] = useState(0.6)
+  const popDensityLayerRef = useRef<any>(null)
+
+  // NASA FIRMS fires (24 h)
+  const [firesActive, setFiresActive] = useState(false)
+  const firesLayerRef = useRef<any>(null)
   const trueSizeOffsetRef = useRef<[number, number]>([SWITZERLAND_CENTROID[0], SWITZERLAND_CENTROID[1]])
+
+  // Lightning tool (Blitzortung)
+  const [lightningActive, setLightningActive] = useState(false)
+  const [lightningCount, setLightningCount] = useState(0)
+  const lightningWsRef = useRef<WebSocket | null>(null)
+  const lightningMarkersRef = useRef<any[]>([])
+
+  // GBIF wildlife tool
+  const GBIF_GROUPS = [
+    { key: 'Aves',        label: '🐦', name: 'Birds',      nameFr: 'Oiseaux',    color: '#60a5fa' },
+    { key: 'Mammalia',    label: '🦊', name: 'Mammals',    nameFr: 'Mammifères', color: '#f97316' },
+    { key: 'Reptilia',    label: '🦎', name: 'Reptiles',   nameFr: 'Reptiles',   color: '#4ade80' },
+    { key: 'Amphibia',    label: '🐸', name: 'Amphibians', nameFr: 'Amphibiens', color: '#a3e635' },
+    { key: 'Insecta',     label: '🦋', name: 'Insects',    nameFr: 'Insectes',   color: '#facc15' },
+    { key: 'Plantae',     label: '🌿', name: 'Plants',     nameFr: 'Plantes',    color: '#34d399' },
+  ] as const
+  type GbifGroupKey = typeof GBIF_GROUPS[number]['key']
+
+  const [gbifActive, setGbifActive] = useState(false)
+  const [gbifLoading, setGbifLoading] = useState(false)
+  const [gbifGroups, setGbifGroups] = useState<Set<GbifGroupKey>>(new Set(GBIF_GROUPS.map(g => g.key)))
+  const [gbifRadius, setGbifRadius] = useState(50)
+  const [gbifRecency, setGbifRecency] = useState<'all' | '10y' | '1y' | '5d'>('1y')
+  const [gbifPhotoOnly, setGbifPhotoOnly] = useState(true)
+  const [gbifMonth, setGbifMonth] = useState(new Date().getMonth() + 1)
+  const [gbifRefreshKey, setGbifRefreshKey] = useState(0)
+  const [gbifExpandedPhoto, setGbifExpandedPhoto] = useState<string | null>(null)
+  const gbifMarkersRef = useRef<any[]>([])
+  type GbifRecord = { marker: any; name: string; vernacular: string | null; group: typeof GBIF_GROUPS[number] }
+  const gbifRecordsRef = useRef<GbifRecord[]>([])
 
   // Keep setters in refs so Leaflet closures (initMap) can access current values
   const setHoveredDistanceRef = useRef(setHoveredDistance)
@@ -575,6 +614,40 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
     measureRubberRef.current = null
     measureMarkersRef.current.forEach(m => m.remove())
     measureMarkersRef.current = []
+  }
+
+  function selectPlannedRoute(routeIdx: number) {
+    if (selectedRouteIndex === routeIdx) {
+      setSelectedRouteIndex(null)
+      setRouteElevation(null)
+      setHoveredRouteDistance(null)
+      selectedRouteIndexRef.current = null
+      routeCumDistsRef.current = null
+      return
+    }
+    const route = plannedRoutes[routeIdx]
+    if (!route) return
+    setSelectedRouteIndex(routeIdx)
+    selectedRouteIndexRef.current = routeIdx
+    routeCumDistsRef.current = buildCumDists(route.coordinates)
+    if (route.elevation) {
+      routeElevationCache.current[route.id] = route.elevation
+      setRouteElevation(route.elevation)
+      return
+    }
+    const cached = routeElevationCache.current[route.id]
+    if (cached) { setRouteElevation(cached); return }
+    setRouteElevation(null)
+    setRouteElevationLoading(true)
+    fetch('/api/elevation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coordinates: route.coordinates, routeId: route.id }),
+    })
+      .then(r => r.json())
+      .then(data => { if (data.elevation) { routeElevationCache.current[route.id] = data.elevation; setRouteElevation(data.elevation) } })
+      .catch(() => {})
+      .finally(() => setRouteElevationLoading(false))
   }
 
   function closeAllGeoTools() {
@@ -854,6 +927,354 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       daylightLayerRef.current = null
     }
   }, [daylightActive])
+
+  // Population density overlay
+  useEffect(() => {
+    const map = mapRef.current
+    const L = (window as any)._L
+    if (!map || !L) return
+
+    if (!popDensityActive) {
+      popDensityLayerRef.current?.remove()
+      popDensityLayerRef.current = null
+      return
+    }
+
+    popDensityLayerRef.current = L.tileLayer(
+      'https://human-settlement.emergency.copernicus.eu/d_prx.php/2023---GHS_POP_2025/{z}/{x}/{y}.png',
+      { opacity: popDensityOpacity, attribution: '© EU Copernicus GHSL 2025', pane: 'overlayPane', tms: true }
+    ).addTo(map)
+
+    return () => {
+      popDensityLayerRef.current?.remove()
+      popDensityLayerRef.current = null
+    }
+  }, [popDensityActive])
+
+  // Update opacity without re-creating the layer
+  useEffect(() => {
+    popDensityLayerRef.current?.setOpacity(popDensityOpacity)
+  }, [popDensityOpacity])
+
+  // NASA FIRMS fires layer
+  useEffect(() => {
+    const map = mapRef.current
+    const L = (window as any)._L
+    if (!map || !L) return
+    if (!firesActive) {
+      firesLayerRef.current?.remove()
+      firesLayerRef.current = null
+      return
+    }
+    const d = new Date(); d.setDate(d.getDate() - 2)
+    const date = d.toISOString().slice(0, 10)
+    firesLayerRef.current = L.tileLayer.wms(
+      'https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi',
+      { layers: 'MODIS_Combined_Thermal_Anomalies_All', format: 'image/png', transparent: true, version: '1.3.0', time: date, opacity: 0.9, attribution: '© NASA MODIS / GIBS' } as any
+    ).addTo(map)
+    return () => {
+      firesLayerRef.current?.remove()
+      firesLayerRef.current = null
+    }
+  }, [firesActive])
+
+  // Lightning (Blitzortung via SSE proxy — direct WS blocked by origin)
+  useEffect(() => {
+    const map = mapRef.current
+    const L = (window as any)._L
+    if (!map || !L || !lightningActive) return
+
+    let cleanedUp = false
+    const MAX_STRIKES = 500
+
+    const clearMarkers = () => {
+      lightningMarkersRef.current.forEach(m => m.remove())
+      lightningMarkersRef.current = []
+      setLightningCount(0)
+    }
+
+    const addStrike = (lat: number, lon: number, pol?: number, mds?: number) => {
+      const isPositive = pol === 1
+      const fillColor = isPositive ? '#f97316' : '#facc15'
+      const radius = mds ? Math.min(10, Math.max(3, Math.log10(mds + 1) * 3)) : 4
+      const marker = L.circleMarker([lat, lon], {
+        radius,
+        color: '#fff',
+        fillColor,
+        fillOpacity: 1,
+        opacity: 1,
+        weight: 1,
+        pane: 'overlayPane',
+      }).addTo(map)
+
+      lightningMarkersRef.current.push(marker)
+      setLightningCount(c => c + 1)
+
+      const start = Date.now()
+      const fade = setInterval(() => {
+        if (cleanedUp) { clearInterval(fade); return }
+        const t = (Date.now() - start) / 20000
+        if (t >= 1) {
+          clearInterval(fade)
+          marker.remove()
+          lightningMarkersRef.current = lightningMarkersRef.current.filter(m => m !== marker)
+          setLightningCount(c => Math.max(0, c - 1))
+        } else {
+          marker.setStyle({ fillOpacity: 1 - t, opacity: 1 - t })
+        }
+      }, 500)
+
+      if (lightningMarkersRef.current.length > MAX_STRIKES) {
+        const oldest = lightningMarkersRef.current.shift()
+        oldest?.remove()
+        setLightningCount(c => Math.max(0, c - 1))
+      }
+    }
+
+    const SERVERS = [
+      'wss://ws2.blitzortung.org/',
+      'wss://ws1.blitzortung.org/',
+      'wss://ws7.blitzortung.org/',
+    ]
+    let serverIdx = 0
+    let ws: WebSocket | null = null
+
+    const connect = () => {
+      if (cleanedUp) return
+      const url = SERVERS[serverIdx % SERVERS.length]
+      serverIdx++
+      ws = new WebSocket(url)
+
+      ws.onopen = () => {
+        ws?.send(JSON.stringify({ a: 111 }))
+      }
+      ws.onerror = () => {}
+
+      ws.onmessage = (evt) => {
+        if (cleanedUp) return
+        try {
+          const raw: string = evt.data instanceof Blob ? '' : evt.data
+          if (!raw) return
+          // LZ77 decompression used by Blitzortung
+          const d = [...raw]
+          let c = d[0], f = c
+          const g = [c]
+          const e: Record<number, string> = {}
+          let o = 256
+          for (let i = 1; i < d.length; i++) {
+            const code = d[i].charCodeAt(0)
+            const a = code < 256 ? d[i] : (e[code] ?? f + c)
+            g.push(a)
+            c = a[0]
+            e[o++] = f + c
+            f = a
+          }
+          const decoded = g.join('')
+          const strike = JSON.parse(decoded)
+          if (typeof strike.lat === 'number' && typeof strike.lon === 'number') {
+            addStrike(strike.lat, strike.lon, strike.pol, strike.mds)
+          }
+        } catch {}
+      }
+
+      ws.onclose = () => {
+        if (!cleanedUp) setTimeout(connect, 3000)
+      }
+    }
+
+    connect()
+    lightningWsRef.current = ws
+
+    return () => {
+      cleanedUp = true
+      ws?.close()
+      lightningWsRef.current = null
+      clearMarkers()
+    }
+  }, [lightningActive])
+
+  // Register persistent photo expand callback for Leaflet popup onclick
+  useEffect(() => {
+    ;(window as any).__gbifExpand = (url: string) => setGbifExpandedPhoto(url)
+    return () => { delete (window as any).__gbifExpand }
+  }, [])
+
+  function updateGbifLabels() {
+    const map = mapRef.current as NonNullable<typeof mapRef.current>
+    if (!map) return
+    const placed: { x1: number; y1: number; x2: number; y2: number }[] = []
+    gbifRecordsRef.current.forEach(({ marker, vernacular, name }) => {
+      const pos = map.latLngToContainerPoint(marker.getLatLng())
+      const label = vernacular ?? name
+      const w = Math.min(label.length * 6.5 + 14, 160)
+      const h = 18
+      const x1 = pos.x + 12, y1 = pos.y - h / 2, x2 = x1 + w, y2 = y1 + h
+      const overlaps = placed.some(b => x1 < b.x2 && x2 > b.x1 && y1 < b.y2 && y2 > b.y1)
+      if (!overlaps) {
+        placed.push({ x1, y1, x2, y2 })
+        marker.openTooltip()
+      } else {
+        marker.closeTooltip()
+      }
+    })
+  }
+
+  // GBIF wildlife fetch
+  useEffect(() => {
+    const L = (window as any)._L
+    if (!L) return
+    const map = mapRef.current as NonNullable<typeof mapRef.current>
+    if (!map) return
+
+    // Clear existing markers
+    gbifMarkersRef.current.forEach(m => m.remove())
+    gbifMarkersRef.current = []
+    gbifRecordsRef.current = []
+
+    if (!gbifActive || gbifGroups.size === 0 || map.getZoom() < 9) return
+
+    const center = map.getCenter()
+    const now = new Date()
+    const yearFrom = gbifRecency === '1y'
+      ? now.getFullYear() - 1
+      : gbifRecency === '10y' ? now.getFullYear() - 10 : null
+    const dateFrom = gbifRecency === '5d'
+      ? new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      : null
+
+    setGbifLoading(true)
+
+    const cosLat = Math.cos(center.lat * Math.PI / 180)
+    const dLat = gbifRadius / 111
+    const dLng = gbifRadius / (111 * cosLat)
+
+    const fetchGroup = async (group: typeof GBIF_GROUPS[number]) => {
+      const params = new URLSearchParams({
+        decimalLatitude: `${(center.lat - dLat).toFixed(4)},${(center.lat + dLat).toFixed(4)}`,
+        decimalLongitude: `${(center.lng - dLng).toFixed(4)},${(center.lng + dLng).toFixed(4)}`,
+        hasCoordinate: 'true',
+        hasGeospatialIssue: 'false',
+        limit: '100',
+      })
+      if (group.key === 'Plantae') {
+        params.set('kingdom', 'Plantae')
+      } else {
+        params.set('class', group.key)
+      }
+      if (gbifPhotoOnly) params.set('mediaType', 'StillImage')
+      if (yearFrom) params.set('year', `${yearFrom},${now.getFullYear()}`)
+      if (dateFrom) params.set('eventDate', `${dateFrom},${now.toISOString().slice(0, 10)}`)
+      if (!dateFrom) params.set('month', String(gbifMonth))
+
+      const res = await fetch(`https://api.gbif.org/v1/occurrence/search?${params}`)
+      if (!res.ok) return []
+      const data = await res.json()
+      return (data.results ?? []) as any[]
+    }
+
+    Promise.all([...gbifGroups].map(key => {
+      const group = GBIF_GROUPS.find(g => g.key === key)!
+      return fetchGroup(group).then(results => ({ group, results }))
+    })).then(async all => {
+      // Fetch localized vernacular names if not English
+      const langCode = locale === 'fr' ? 'fra' : null
+      const vernacularByTaxon = {} as Record<number, string>
+      if (langCode) {
+        // Use speciesKey (accepted species) — more stable for the vernacular names endpoint
+        const speciesKeys = [...new Set(
+          all.flatMap(({ results }) =>
+            results.map((r: any) => r.speciesKey ?? r.taxonKey).filter(Boolean)
+          )
+        )] as number[]
+        await Promise.all(speciesKeys.map(async (speciesKey) => {
+          try {
+            const res = await fetch(`https://api.gbif.org/v1/species/${speciesKey}/vernacularNames?limit=50`)
+            if (!res.ok) return
+            const data = await res.json()
+            const match = (data.results ?? []).find((v: any) => v.language === langCode)
+            if (match?.vernacularName) vernacularByTaxon[speciesKey] = match.vernacularName
+          } catch { /* skip */ }
+        }))
+      }
+
+      all.forEach(({ group, results }) => {
+        results.forEach((rec: any) => {
+          const lat = rec.decimalLatitude
+          const lng = rec.decimalLongitude
+          if (!lat || !lng) return
+
+          // Verify the record actually belongs to the queried group
+          if (group.key === 'Plantae') {
+            if (rec.kingdom !== 'Plantae') return
+          } else {
+            if (rec.class !== group.key) return
+          }
+
+          const name = rec.species ?? rec.scientificName ?? 'Unknown species'
+          const vernacular = vernacularByTaxon[rec.speciesKey ?? rec.taxonKey] ?? rec.vernacularName ?? null
+          const imgUrl = rec.media?.[0]?.identifier ?? null
+          const date = rec.eventDate ? rec.eventDate.slice(0, 10) : null
+
+          const isPlant = group.key === 'Plantae'
+          const dotShape = isPlant ? 'border-radius:5px;transform:rotate(45deg)' : 'border-radius:50%'
+          const innerRotate = isPlant ? 'transform:rotate(-45deg)' : ''
+          const icon = L.divIcon({
+            className: '',
+            html: `<div style="width:20px;height:20px;${dotShape};background:${group.color};border:2px solid rgba(255,255,255,0.85);display:flex;align-items:center;justify-content:center;font-size:10px;box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:pointer"><span style="${innerRotate}">${group.label}</span></div>`,
+            iconSize: [20, 20],
+            iconAnchor: [10, 10],
+          })
+
+          const family: string | null = rec.family ?? null
+          const location = [rec.stateProvince, rec.country].filter(Boolean).join(', ') || null
+          const basis: string | null = rec.basisOfRecord ?? null
+          const fr = locale === 'fr'
+          const basisLabel = basis === 'HUMAN_OBSERVATION' ? (fr ? '👁 Observation directe' : '👁 Live sighting')
+            : basis === 'PRESERVED_SPECIMEN' ? (fr ? '📌 Spécimen de musée' : '📌 Museum specimen')
+            : basis === 'MACHINE_OBSERVATION' ? (fr ? '📡 Détection automatique' : '📡 Auto-detected')
+            : basis ? basis.replace(/_/g, ' ') : null
+          const gbifUrl = `https://www.gbif.org/occurrence/${rec.key}`
+          const viewLabel = fr ? 'Voir sur GBIF' : 'View on GBIF'
+
+          const popupHtml = [
+            `<div style="font-family:sans-serif;width:260px">`,
+            imgUrl ? `<img src="${imgUrl}" onclick="window.__gbifExpand('${imgUrl.replace(/'/g, "\\'")}')" style="width:100%;height:150px;object-fit:cover;border-radius:7px;margin-bottom:9px;cursor:zoom-in;display:block" onerror="this.style.display='none'"/>` : '',
+            `<div style="font-size:10px;color:${group.color};font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${locale === 'fr' ? group.nameFr : group.name}${family ? ` · ${family}` : ''}</div>`,
+            `<div style="font-size:14px;font-weight:700;color:#1e293b;line-height:1.3">${vernacular ?? name}</div>`,
+            vernacular ? `<div style="font-size:11px;color:#64748b;font-style:italic;margin-top:2px">${name}</div>` : '',
+            `<div style="margin-top:7px;display:flex;flex-direction:column;gap:3px">`,
+            location ? `<div style="font-size:10px;color:#64748b">📍 ${location}</div>` : '',
+            date ? `<div style="font-size:10px;color:#94a3b8">📅 ${date}</div>` : '',
+            basisLabel ? `<div style="font-size:10px;color:#94a3b8">${basisLabel}</div>` : '',
+            `</div>`,
+            `<a href="${gbifUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:8px;font-size:10px;color:#f97316;text-decoration:none;font-weight:600">${viewLabel} →</a>`,
+            `</div>`,
+          ].join('')
+          const tooltipName = vernacular ?? name
+          const marker = L.marker([lat, lng], { icon }).addTo(map)
+          marker.bindTooltip(tooltipName, { permanent: true, direction: 'right', offset: [6, 0], className: 'gbif-tooltip' })
+          marker.bindPopup(popupHtml, { maxWidth: 290, autoPan: true })
+          gbifMarkersRef.current.push(marker)
+          gbifRecordsRef.current.push({ marker, name, vernacular, group })
+        })
+      })
+      updateGbifLabels()
+      // Wire tooltip DOM clicks → open popup (pointer-events enabled via CSS)
+      gbifRecordsRef.current.forEach(({ marker }) => {
+        const el = marker.getTooltip()?.getElement()
+        if (el) el.onclick = () => marker.openPopup()
+      })
+      setGbifLoading(false)
+    }).catch(() => setGbifLoading(false))
+
+    map.on('zoomend moveend', updateGbifLabels)
+    return () => {
+      map.off('zoomend moveend', updateGbifLabels)
+      gbifMarkersRef.current.forEach(m => m.remove())
+      gbifMarkersRef.current = []
+    }
+  }, [gbifActive, gbifGroups, gbifRadius, gbifRecency, gbifPhotoOnly, gbifMonth, gbifRefreshKey, mapZoom])
+
 
   // On the trip detail page (externalHover provided), auto-select the single trip
   const effectiveTripIndex = externalHover !== undefined && trips.length === 1
@@ -1246,6 +1667,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
   }
 
   function selectTrip(index: number) {
+    setGbifActive(false)
     setSelectedTripIndex(index)
     selectedTripIndexRef.current = index
     setActiveVideoId(null)
@@ -1416,36 +1838,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
         const hitZone = L.polyline(hitLatLngs, { color: route.color, weight: 16, opacity: 0 }).addTo(map)
         hitZone.on('click', (e: any) => {
           L.DomEvent.stopPropagation(e)
-          setSelectedRouteIndex(routeIdx)
-          selectedRouteIndexRef.current = routeIdx
-          routeCumDistsRef.current = buildCumDists(route.coordinates)
-          // Use DB-stored elevation if available
-          if (route.elevation) {
-            routeElevationCache.current[route.id] = route.elevation
-            setRouteElevation(route.elevation)
-            return
-          }
-          const cached = routeElevationCache.current[route.id]
-          if (cached) {
-            setRouteElevation(cached)
-            return
-          }
-          setRouteElevation(null)
-          setRouteElevationLoading(true)
-          fetch('/api/elevation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ coordinates: route.coordinates, routeId: route.id }),
-          })
-            .then((r) => r.json())
-            .then((data) => {
-              if (data.elevation) {
-                routeElevationCache.current[route.id] = data.elevation
-                setRouteElevation(data.elevation)
-              }
-            })
-            .catch(() => {})
-            .finally(() => setRouteElevationLoading(false))
+          selectPlannedRoute(routeIdx)
         })
 
         hitZone.on('mousemove', (e: any) => {
@@ -1925,37 +2318,8 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       {/* Top-left map controls */}
       {externalHover === undefined && !aboutOpen && !(isMobile && selectedRouteIndex !== null) && (
         <div className="absolute top-4 left-4 z-[9999] flex items-center gap-2">
-          <button
-            onClick={() => setBasemap((v) => v === 'dark' ? 'topo' : 'dark')}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
-            style={{
-              background: basemap === 'topo' ? 'rgba(251,191,36,0.2)' : 'rgba(15,23,42,0.85)',
-              border: basemap === 'topo' ? '1px solid rgba(251,191,36,0.6)' : '1px solid rgba(51,65,85,0.8)',
-              backdropFilter: 'blur(8px)',
-              color: basemap === 'topo' ? '#fbbf24' : '#94a3b8',
-            }}
-          >
-            <span style={{ fontSize: 16 }}>🗻</span>
-            <span className="hidden md:inline">Topo</span>
-          </button>
-          {mapZoom >= WEATHER_ZOOM_THRESHOLD && (
-            <button
-              onClick={() => setShowWeather((v) => !v)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
-              style={{
-                background: showWeather ? 'rgba(34,211,238,0.2)' : 'rgba(15,23,42,0.85)',
-                border: showWeather ? '1px solid rgba(34,211,238,0.6)' : '1px solid rgba(51,65,85,0.8)',
-                backdropFilter: 'blur(8px)',
-                color: showWeather ? '#22d3ee' : '#94a3b8',
-              }}
-            >
-              <span style={{ fontSize: 16 }}>⛅</span>
-              <span className="hidden md:inline">Météo</span>
-            </button>
-          )}
-
-          {/* Geo tools — desktop only */}
-          <div className="hidden md:block relative">
+          {/* Unified layers & tools button */}
+          <div className="relative">
             {measureActive ? (
               <div
                 className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold"
@@ -1972,26 +2336,79 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
             ) : (
               <button
                 onClick={() => setGeoToolsOpen(v => !v)}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+                className="flex items-center gap-2 px-3 py-2 md:px-3 md:py-2 rounded-xl text-sm font-semibold transition-all active:scale-95"
                 style={{
-                  background: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive) ? 'rgba(249,115,22,0.15)' : 'rgba(15,23,42,0.85)',
-                  border: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive) ? '1px solid rgba(249,115,22,0.5)' : '1px solid rgba(51,65,85,0.8)',
+                  background: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive || gbifActive || popDensityActive || lightningActive || firesActive || basemap === 'topo' || showWeather) ? 'rgba(249,115,22,0.2)' : 'rgba(15,23,42,0.85)',
+                  border: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive || gbifActive || popDensityActive || lightningActive || firesActive || basemap === 'topo' || showWeather) ? '1px solid rgba(249,115,22,0.6)' : '1px solid rgba(100,116,139,0.6)',
                   backdropFilter: 'blur(8px)',
-                  color: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive) ? '#f97316' : '#94a3b8',
+                  color: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive || gbifActive || popDensityActive || lightningActive || firesActive || basemap === 'topo' || showWeather) ? '#f97316' : '#cbd5e1',
+                  boxShadow: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive || gbifActive || popDensityActive || lightningActive || firesActive || basemap === 'topo' || showWeather) ? '0 0 12px rgba(249,115,22,0.2)' : '0 2px 8px rgba(0,0,0,0.4)',
                 }}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
                 </svg>
-                <span>{t('geoTools')}</span>
+                <span className="hidden md:inline">{t('geoTools')}</span>
               </button>
             )}
 
-            {geoToolsOpen && !measureActive && (
+            {(geoToolsOpen || popDensityActive) && !measureActive && (
               <div
-                className="absolute top-full left-0 mt-2 rounded-xl overflow-hidden z-[9999] min-w-[200px]"
-                style={{ background: 'rgba(15,23,42,0.97)', border: '1px solid rgba(51,65,85,0.8)', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
+                className={isMobile
+                  ? 'fixed bottom-0 left-0 right-0 z-[9999] rounded-t-2xl overflow-y-auto'
+                  : 'absolute top-full left-0 mt-2 rounded-xl overflow-hidden z-[9999] min-w-[200px]'}
+                style={{ background: 'rgba(15,23,42,0.97)', border: '1px solid rgba(51,65,85,0.8)', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', ...(isMobile ? { maxHeight: '80vh' } : {}) }}
               >
+                {/* Mobile header with drag handle + close button */}
+                {isMobile && (
+                  <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                    <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(148,163,184,0.4)', margin: '0 auto' }} />
+                    <button onClick={() => setGeoToolsOpen(false)} style={{ color: '#94a3b8', marginLeft: 8 }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                  </div>
+                )}
+                {/* Basemap toggle */}
+                <button
+                  onClick={() => { setBasemap(v => v === 'dark' ? 'topo' : 'dark'); setGeoToolsOpen(false) }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors"
+                  style={{ color: basemap === 'topo' ? '#fbbf24' : '#cbd5e1', borderBottom: '1px solid rgba(51,65,85,0.5)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(51,65,85,0.4)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 20l6-12 4 7 3-4 5 9H3z"/>
+                  </svg>
+                  {basemap === 'topo' ? (locale === 'fr' ? 'Masquer Topo' : 'Hide Topo') : (locale === 'fr' ? 'Fond Topo' : 'Topo basemap')}
+                </button>
+                {/* Weather toggle */}
+                <button
+                  onClick={() => { if (mapZoom >= WEATHER_ZOOM_THRESHOLD) { setShowWeather(v => !v); setGeoToolsOpen(false) } }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors"
+                  style={{ color: showWeather ? '#22d3ee' : mapZoom < WEATHER_ZOOM_THRESHOLD ? '#475569' : '#cbd5e1', borderBottom: '1px solid rgba(51,65,85,0.5)', cursor: mapZoom < WEATHER_ZOOM_THRESHOLD ? 'not-allowed' : 'pointer' }}
+                  onMouseEnter={e => { if (mapZoom >= WEATHER_ZOOM_THRESHOLD) e.currentTarget.style.background = 'rgba(51,65,85,0.4)' }}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
+                  </svg>
+                  <span className="flex-1">{showWeather ? (locale === 'fr' ? 'Masquer Météo' : 'Hide Weather') : (locale === 'fr' ? 'Météo' : 'Weather')}</span>
+                  {mapZoom < WEATHER_ZOOM_THRESHOLD && <span style={{ fontSize: 10, color: '#475569' }}>zoom ≥ {WEATHER_ZOOM_THRESHOLD}</span>}
+                </button>
+                {plannedRoutes.length > 0 && (
+                  <button
+                    onClick={() => { selectPlannedRoute(0); setGeoToolsOpen(false) }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors"
+                    style={{ color: selectedRouteIndex === 0 ? '#f97316' : '#cbd5e1', borderBottom: '1px solid rgba(51,65,85,0.5)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(51,65,85,0.4)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                    {selectedRouteIndex === 0 ? (locale === 'fr' ? 'Masquer profil route' : 'Hide route profile') : (locale === 'fr' ? 'Profil de la route' : 'Route profile')}
+                  </button>
+                )}
                 <button
                   onClick={() => { toggleMeasure(); setGeoToolsOpen(false) }}
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors"
@@ -2040,8 +2457,282 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
                   </svg>
                   {daylightActive ? t('daylightHide') : t('daylightShow')}
                 </button>
+                <button
+                  onClick={() => { clearMeasure(); setMeasureActive(false); setPopDensityActive(v => !v) }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors"
+                  style={{ color: popDensityActive ? '#f97316' : '#cbd5e1', borderTop: '1px solid rgba(51,65,85,0.5)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(51,65,85,0.4)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="9" cy="7" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="17" r="2"/><circle cx="18" cy="5" r="1.5"/><circle cx="5" cy="15" r="1.5"/>
+                  </svg>
+                  {popDensityActive ? (locale === 'fr' ? 'Masquer population' : 'Hide population') : (locale === 'fr' ? 'Densité population' : 'Population density')}
+                </button>
+                {popDensityActive && (
+                  <div className="flex flex-col gap-2 px-4 py-3" style={{ borderTop: '1px solid rgba(51,65,85,0.4)', background: 'rgba(15,23,42,0.4)' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400 shrink-0">{locale === 'fr' ? 'Opacité' : 'Opacity'}</span>
+                      <input
+                        type="range" min={0.1} max={1} step={0.05}
+                        value={popDensityOpacity}
+                        onChange={e => setPopDensityOpacity(Number(e.target.value))}
+                        className="flex-1 accent-orange-500"
+                      />
+                    </div>
+                    <span className="text-xs text-slate-500">{locale === 'fr' ? 'Habitants / cellule 100×100m' : 'Inhabitants / 100×100m cell'}</span>
+                    <div className="flex flex-col gap-1">
+                      {([
+                        ['#EBE4EB', '0–5'],
+                        ['#D3BDD5', '6–20'],
+                        ['#C38CBF', '21–100'],
+                        ['#E05A93', '101–300'],
+                        ['#D71E5E', '301–500'],
+                        ['#BF0D3D', '501–1k'],
+                        ['#7E002D', '1k+'],
+                      ] as const).map(([color, label]) => (
+                        <div key={label} className="flex items-center gap-2">
+                          <div style={{ width: 12, height: 12, borderRadius: 2, background: color, flexShrink: 0, border: '1px solid rgba(255,255,255,0.15)' }} />
+                          <span className="text-xs" style={{ color: '#cbd5e1' }}>{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <button
+                  onClick={() => { setLightningActive(v => !v); setGeoToolsOpen(false) }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors"
+                  style={{ color: lightningActive ? '#facc15' : '#cbd5e1', borderTop: '1px solid rgba(51,65,85,0.5)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(51,65,85,0.4)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
+                  <span className="flex-1">{lightningActive ? (locale === 'fr' ? 'Masquer la foudre' : 'Hide lightning') : (locale === 'fr' ? 'Foudre en direct' : 'Live lightning')}</span>
+                  {lightningActive && lightningCount > 0 && (
+                    <span style={{ fontSize: 10, background: 'rgba(250,204,21,0.15)', border: '1px solid rgba(250,204,21,0.4)', color: '#facc15', borderRadius: 4, padding: '1px 5px' }}>{lightningCount}</span>
+                  )}
+                </button>
+                {lightningActive && (
+                  <div style={{ borderTop: '1px solid rgba(51,65,85,0.4)', background: 'rgba(15,23,42,0.4)', padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#94a3b8' }}>
+                        <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#facc15" stroke="#fff" strokeWidth="1"/></svg>
+                        {locale === 'fr' ? 'Négatif (−)' : 'Negative (−)'}
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#94a3b8' }}>
+                        <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#f97316" stroke="#fff" strokeWidth="1"/></svg>
+                        {locale === 'fr' ? 'Positif (+)' : 'Positive (+)'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' }}>{locale === 'fr' ? 'Récent' : 'Recent'}</span>
+                      <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'linear-gradient(to right, #facc15, rgba(250,204,21,0.05))', border: '1px solid rgba(250,204,21,0.2)' }} />
+                      <span style={{ fontSize: 11, color: '#475569', whiteSpace: 'nowrap' }}>20s</span>
+                    </div>
+                    <span style={{ fontSize: 10, color: '#475569' }}>{locale === 'fr' ? 'Taille ∝ intensité' : 'Size ∝ intensity'}</span>
+                  </div>
+                )}
+                <button
+                  onClick={() => { setFiresActive(v => !v); setGeoToolsOpen(false) }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors"
+                  style={{ color: firesActive ? '#ef4444' : '#cbd5e1', borderTop: '1px solid rgba(51,65,85,0.5)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(51,65,85,0.4)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z"/><path d="M12 12c0 3-2 4-2 7a2 2 0 0 0 4 0c0-3-2-4-2-7z"/>
+                  </svg>
+                  <span className="flex-1">{firesActive ? (locale === 'fr' ? 'Masquer les feux' : 'Hide fires') : (locale === 'fr' ? 'Feux actifs (24 h)' : 'Active fires (24 h)')}</span>
+                </button>
+                <button
+                  onClick={() => { if (mapZoom < 9) return; clearMeasure(); setMeasureActive(false); setTrueSizeActive(false); setTimeZoneActive(false); setDaylightActive(false); setGbifActive(v => !v); setGeoToolsOpen(false) }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors"
+                  style={{ color: gbifActive ? '#f97316' : mapZoom < 9 ? '#475569' : '#cbd5e1', borderTop: '1px solid rgba(51,65,85,0.5)', cursor: mapZoom < 9 ? 'not-allowed' : 'pointer' }}
+                  onMouseEnter={e => { if (mapZoom >= 9) e.currentTarget.style.background = 'rgba(51,65,85,0.4)' }}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2"/><path d="M12 8c-2.5 0-4 1.5-4 4s1.5 4 4 4 4-1.5 4-4-1.5-4-4-4"/><path d="M4.5 4.5l3.5 3.5M16 16l3.5 3.5M19.5 4.5L16 8M8 16l-3.5 3.5"/>
+                  </svg>
+                  <span className="flex-1">{gbifActive ? 'Masquer la faune' : 'Faune & Flore'}</span>
+                  {mapZoom < 9 && <span style={{ fontSize: 10, color: '#475569' }}>zoom ≥ 9</span>}
+                </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+
+      {/* GBIF loading overlay */}
+      {gbifLoading && (
+        <div className="absolute inset-0 z-[1090] flex items-center justify-center pointer-events-none">
+          <div
+            className="flex items-center gap-3 px-5 py-3 rounded-2xl"
+            style={{ background: 'rgba(15,23,42,0.92)', border: '1px solid rgba(249,115,22,0.4)', backdropFilter: 'blur(8px)' }}
+          >
+            <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+            </svg>
+            <span className="text-sm font-medium text-slate-200">{locale === 'fr' ? 'Chargement des espèces…' : 'Loading species…'}</span>
+          </div>
+        </div>
+      )}
+
+      {/* GBIF expanded photo */}
+      {gbifExpandedPhoto && (
+        <div
+          className="absolute inset-0 z-[1200] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.85)' }}
+          onClick={() => setGbifExpandedPhoto(null)}
+        >
+          <img
+            src={gbifExpandedPhoto}
+            alt=""
+            style={{ maxWidth: '90%', maxHeight: '85%', borderRadius: 12, boxShadow: '0 24px 64px rgba(0,0,0,0.8)', objectFit: 'contain' }}
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setGbifExpandedPhoto(null)}
+            className="absolute top-4 right-4 text-white/70 hover:text-white"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+      )}
+
+      {/* GBIF filter panel — top right on mobile, bottom right on desktop */}
+      {gbifActive && (
+        <div
+          className="absolute right-4 z-[1100] rounded-2xl overflow-y-auto"
+          style={{ background: 'rgba(15,23,42,0.97)', border: '1px solid rgba(51,65,85,0.8)', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', width: 268, maxHeight: 'calc(100% - 88px)', ...(isMobile ? { top: 64 } : { bottom: 16 }) }}
+        >
+          <div className="px-4 pt-4 pb-3">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-sm font-semibold text-slate-200 flex-1">Faune &amp; Flore</span>
+              <button
+                onClick={() => setGbifRefreshKey(k => k + 1)}
+                disabled={gbifLoading}
+                className="text-slate-400 hover:text-orange-400 transition-colors disabled:opacity-40"
+                title="Refresh"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={gbifLoading ? 'animate-spin' : ''}>
+                  <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                </svg>
+              </button>
+              <button onClick={() => setGbifActive(false)} className="text-slate-500 hover:text-slate-300 transition-colors">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+
+            {/* Group toggles */}
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {GBIF_GROUPS.map(g => {
+                const on = gbifGroups.has(g.key)
+                return (
+                  <button
+                    key={g.key}
+                    onClick={() => setGbifGroups(prev => {
+                      const next = new Set(prev)
+                      if (next.has(g.key)) next.delete(g.key); else next.add(g.key)
+                      return next
+                    })}
+                    className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all"
+                    style={{
+                      background: on ? `${g.color}22` : 'rgba(51,65,85,0.4)',
+                      border: `1px solid ${on ? g.color : 'rgba(51,65,85,0.6)'}`,
+                      color: on ? g.color : '#64748b',
+                    }}
+                  >
+                    <span>{g.label}</span>{locale === 'fr' ? g.nameFr : g.name}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Radius */}
+            <div className="mb-2">
+              <div className="text-xs text-slate-400 mb-1">Rayon</div>
+              <div className="flex gap-1.5">
+                {[25, 50, 100].map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setGbifRadius(r)}
+                    className="flex-1 py-1 rounded-lg text-xs font-medium transition-all"
+                    style={{
+                      background: gbifRadius === r ? 'rgba(249,115,22,0.2)' : 'rgba(51,65,85,0.4)',
+                      border: `1px solid ${gbifRadius === r ? 'rgba(249,115,22,0.6)' : 'rgba(51,65,85,0.6)'}`,
+                      color: gbifRadius === r ? '#f97316' : '#94a3b8',
+                    }}
+                  >{r} km</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Recency */}
+            <div className="mb-2">
+              <div className="text-xs text-slate-400 mb-1">{locale === 'fr' ? 'Période' : 'Period'}</div>
+              <div className="flex gap-1.5">
+                {([
+                  ['5d', locale === 'fr' ? '5 j' : '5 d'],
+                  ['1y', locale === 'fr' ? '1 an' : '1 yr'],
+                  ['10y', locale === 'fr' ? '10 ans' : '10 yr'],
+                  ['all', locale === 'fr' ? 'Tout' : 'All'],
+                ] as const).map(([v, label]) => (
+                  <button
+                    key={v}
+                    onClick={() => setGbifRecency(v)}
+                    className="flex-1 py-1 rounded-lg text-xs font-medium transition-all"
+                    style={{
+                      background: gbifRecency === v ? 'rgba(249,115,22,0.2)' : 'rgba(51,65,85,0.4)',
+                      border: `1px solid ${gbifRecency === v ? 'rgba(249,115,22,0.6)' : 'rgba(51,65,85,0.6)'}`,
+                      color: gbifRecency === v ? '#f97316' : '#94a3b8',
+                    }}
+                  >{label}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Month — hidden when 5-day filter active */}
+            <div className="mb-2 flex items-center gap-2" style={{ display: gbifRecency === '5d' ? 'none' : 'flex' }}>
+              <span className="text-xs text-slate-400 shrink-0">{locale === 'fr' ? 'Mois' : 'Month'}</span>
+              <select
+                value={gbifMonth}
+                onChange={e => setGbifMonth(Number(e.target.value))}
+                className="flex-1 rounded-lg px-2 py-1 text-xs outline-none"
+                style={{ background: 'rgba(51,65,85,0.5)', border: '1px solid rgba(71,85,105,0.6)', color: '#e2e8f0' }}
+              >
+                {Array.from({ length: 12 }, (_, i) => {
+                  const label = new Date(2000, i, 1).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' })
+                  return <option key={i+1} value={i+1}>{label.charAt(0).toUpperCase() + label.slice(1)}</option>
+                })}
+              </select>
+            </div>
+
+            {/* Photo only */}
+            <button
+              onClick={() => setGbifPhotoOnly(v => !v)}
+              className="flex items-center gap-2 mt-1 text-xs transition-colors"
+              style={{ color: gbifPhotoOnly ? '#f97316' : '#64748b' }}
+            >
+              <div style={{
+                width: 14, height: 14, borderRadius: 3,
+                background: gbifPhotoOnly ? '#f97316' : 'transparent',
+                border: `1.5px solid ${gbifPhotoOnly ? '#f97316' : '#475569'}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {gbifPhotoOnly && <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5"><path d="M2 6l3 3 5-5"/></svg>}
+              </div>
+              Avec photo uniquement
+            </button>
+
+            {mapZoom < 9
+              ? <div className="text-xs text-orange-400 mt-3">Zoom in to level 9+ to load observations</div>
+              : <div className="text-xs text-slate-500 mt-3">{gbifLoading ? 'Loading…' : `${gbifMarkersRef.current.length} observation${gbifMarkersRef.current.length !== 1 ? 's' : ''}`}</div>
+            }
           </div>
         </div>
       )}
