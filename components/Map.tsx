@@ -2192,13 +2192,13 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
                 )}
               </div>
               {commentsOpen && selectedTrip.comments && selectedTrip.comments.length > 0 && (
-                <div className="mt-2 space-y-2">
+                <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
                   {selectedTrip.comments.map(c => (
                     <div key={c.id} className="flex gap-2 items-start">
                       <div
                         className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 text-xs font-bold"
                       >
-                        {c.athlete_name.charAt(0).toUpperCase()}
+                        {c.athlete_name.charAt(0).toUpperCase() || '?'}
                       </div>
                       <div className="min-w-0">
                         <div className="text-xs text-slate-300 font-medium">{c.athlete_name}</div>
