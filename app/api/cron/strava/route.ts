@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { timingSafeEqual } from 'crypto'
 import { createSupabaseClient } from '@/lib/supabase'
-import { refreshStravaToken, fetchStravaActivitiesSince, fetchStravaElevation, fetchStravaStreams, detectBreaks, findPeakLocations, fetchStravaPhotos, reverseGeocodeCountry } from '@/lib/strava'
+import { refreshStravaToken, fetchStravaActivitiesSince, fetchStravaElevation, fetchStravaStreams, detectBreaks, findPeakLocations, fetchStravaPhotos, reverseGeocodeCountry, fetchStravaComments } from '@/lib/strava'
 import { decodePolylineToGeoJSON } from '@/lib/polyline'
 
 // Earliest date to ever sync from — rides before this are ignored
@@ -127,6 +127,22 @@ export async function runStravaSync(): Promise<{ upserted: number; fetched: numb
     }
 
     upserted++
+  }
+
+  // Refresh comments for all activities from the last 30 days
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: recentTrips } = await supabase
+    .from('trips')
+    .select('id, strava_id')
+    .not('strava_id', 'is', null)
+    .gte('start_date', thirtyDaysAgo)
+
+  for (const trip of recentTrips ?? []) {
+    const comments = await fetchStravaComments(accessToken, trip.strava_id)
+    await supabase
+      .from('trips')
+      .update({ comments: comments.length > 0 ? comments : null })
+      .eq('id', trip.id)
   }
 
   await supabase.from('tokens').update({
