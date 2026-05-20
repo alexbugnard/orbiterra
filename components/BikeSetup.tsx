@@ -23,7 +23,7 @@ const HOTSPOT_DEFS = [
   { id: 'tires',       x: 60,   y: 60,  model: '',                              link: '' },
   { id: 'dynamo',      x: 51,   y: 62,  model: 'SON28',                         link: 'https://www.sinewavecycles.com/collections/schmidt/products/schmidt-son28' },
   { id: 'lighting',    x: 53,   y: 40,  model: 'Son Edelux II',                 link: 'https://nabendynamo.de/en/products/headlights/edelux-2/' },
-  { id: 'tent',        x: 21,   y: 48,  model: 'MSR Hubba Hubba 2p',           link: 'https://cascadedesigns.com/products/hubba-hubba-hd-2-person-backpacking-tent' },
+  { id: 'tent',        x: 50.5,   y: 41,  model: 'MSR Hubba Hubba 2p',           link: 'https://cascadedesigns.com/products/hubba-hubba-hd-2-person-backpacking-tent' },
   { id: 'wheels',      x: 54,   y: 75,  model: 'Duke Baccara WRX 36m',          link: 'https://www.duke-racingwheels.com/fr/42-173-jante-duke-baccara-36.html#/39-nombre_de_trous-24/51-diametre_jantes-700c/57-profil_jantes-symetrique/60-finition_jantes-ud_paintless' },
   // frontal view (same image, right side)
   { id: 'handlebar',   x: 70,   y: 32,  model: 'Deda Gerra',                    link: '' },

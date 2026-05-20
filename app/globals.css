@@ -23,7 +23,7 @@ body {
   background: #1e293b !important;
   color: #f8fafc !important;
   border: 1px solid #334155 !important;
-  border-radius: 12px !important;
+  border-radius: 4px !important;
   box-shadow: 0 20px 60px rgba(0,0,0,0.5) !important;
   padding: 0 !important;
   overflow: hidden;
@@ -36,6 +36,23 @@ body {
 
 .leaflet-popup-tip {
   background: #1e293b !important;
+}
+
+.gbif-tooltip {
+  background: rgba(15,23,42,0.92) !important;
+  border: 1px solid rgba(51,65,85,0.8) !important;
+  border-radius: 4px !important;
+  color: #e2e8f0 !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  padding: 3px 7px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
+  white-space: nowrap !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+.gbif-tooltip::before {
+  display: none !important;
 }
 
 .leaflet-popup-close-button {

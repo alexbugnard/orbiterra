@@ -80,7 +80,7 @@
     "guideTitle": "How does this map work?",
     "guideIntro": "This map follows Vincent's journey from Deadhorse, Alaska to Ushuaia, Argentina. Here is what you can see, where the data comes from and how to read it.",
     "guideSectionMapTitle": "What the map shows",
-    "guideSectionMapRides": "Orange traces — rides recorded by Vincent. Click a trace to open the detail panel: distance, elevation gain, maximum altitude, top speed, breaks longer than 10 minutes, and the ride journal if he wrote one. The title and description come from the Strava activity by default; Vincent can edit them manually but does not always have the time or energy to do so.",
+    "guideSectionMapRides": "Orange traces — rides recorded by Vincent. Click a trace to open the detail panel: distance, elevation gain, maximum altitude, top speed, breaks longer than 10 minutes, and the ride journal if he wrote one. If the activity has Strava comments, a speech bubble icon appears next to the date — click it to read them. The title and description come from the Strava activity by default; Vincent can edit them manually but does not always have the time or energy to do so.",
     "guideSectionMapRoute": "Dashed cyan line — the planned itinerary from Deadhorse to Ushuaia. It serves as a reference to measure progress.",
     "guideSectionMapPhotos": "Photo markers — geotagged photos from Vincent's Strava activities and his Flickr account. Only photos with GPS coordinates appear on the map. Click to enlarge.",
     "guideSectionMediaTitle": "Media Gallery",
@@ -135,6 +135,7 @@
     "tires": "Tires",
     "dynamo": "Dynamo hub",
     "lighting": "Lighting",
+    "tent": "Tent",
     "wheels": "Wheels"
   }
 }
