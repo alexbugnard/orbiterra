@@ -11,7 +11,7 @@ const HOTSPOT_DEFS = [
   { id: 'handlebar',   x: 48,   y: 35,  model: 'Deda Gerra Alloy',              link: 'https://dedaelementi.com/gera-alloy-handlebar' },
   { id: 'stem',        x: 46,   y: 35.8,model: 'Deda Vinci OEM Stem',           link: 'https://dedaelementi.com/vinci-oem-stem' },
   { id: 'extensions',  x: 52,   y: 25,  model: 'Deda Parabolica Pro',           link: 'https://dedaelementi.com/parabolica-pro' },
-  { id: 'saddle',      x: 30,   y: 32,  model: '',                              link: '' },
+  { id: 'saddle',      x: 30,   y: 32,  model: 'SMP',                           link: 'https://www.sellesmp.com/ch_en' },
   { id: 'forkbag',     x: 49,   y: 55,  model: 'Restrap Switch Pannier 10L',    link: 'https://eu.restrap.com/fr/products/switch-pannier-10-litres' },
   { id: 'rearpannier', x: 23,   y: 55,  model: 'Restrap Switch Pannier 10L',    link: 'https://eu.restrap.com/fr/products/switch-pannier-10-litres' },
   { id: 'reartopbag',  x: 23,   y: 40,  model: 'Restrap Switch Top Bag 15L',   link: 'https://restrap.com/products/switch-top-bag-15l' },
@@ -22,18 +22,19 @@ const HOTSPOT_DEFS = [
   { id: 'brakes',      x: 51,   y: 65,  model: 'Shimano GRX 12v',              link: 'https://bike.shimano.com/fr-CA/stories/article/grx-12-speed-mechanical.html' },
   { id: 'tires',       x: 60,   y: 60,  model: '',                              link: '' },
   { id: 'dynamo',      x: 51,   y: 62,  model: 'SON28',                         link: 'https://www.sinewavecycles.com/collections/schmidt/products/schmidt-son28' },
-  { id: 'lighting',    x: 53,   y: 40,  model: 'Sinewave Beacon 2',             link: 'https://www.sinewavecycles.com/products/sinewave-cycles-beacon-2' },
+  { id: 'lighting',    x: 53,   y: 40,  model: 'Son Edelux II',                 link: 'https://nabendynamo.de/en/products/headlights/edelux-2/' },
+  { id: 'tent',        x: 21,   y: 48,  model: 'MSR Hubba Hubba 2p',           link: 'https://cascadedesigns.com/products/hubba-hubba-hd-2-person-backpacking-tent' },
   { id: 'wheels',      x: 54,   y: 75,  model: 'Duke Baccara WRX 36m',          link: 'https://www.duke-racingwheels.com/fr/42-173-jante-duke-baccara-36.html#/39-nombre_de_trous-24/51-diametre_jantes-700c/57-profil_jantes-symetrique/60-finition_jantes-ud_paintless' },
   // frontal view (same image, right side)
   { id: 'handlebar',   x: 70,   y: 32,  model: 'Deda Gerra',                    link: '' },
   { id: 'extensions',  x: 74,   y: 30,  model: 'Deda Parabolica Pro',           link: '' },
-  { id: 'saddle',      x: 72,   y: 23,  model: '',                              link: '' },
+  { id: 'saddle',      x: 72,   y: 23,  model: 'SMP',                           link: 'https://www.sellesmp.com/ch_en' },
   { id: 'forkbag',     x: 76,   y: 55,  model: 'Restrap Switch Pannier 10L',    link: 'https://eu.restrap.com/fr/products/switch-pannier-10-litres' },
   { id: 'rearpannier', x: 77,   y: 45,  model: 'Restrap Switch Pannier 10L',    link: 'https://eu.restrap.com/fr/products/switch-pannier-10-litres' },
   { id: 'brakes',      x: 73.5, y: 65,  model: 'Shimano GRX 12v',              link: 'https://bike.shimano.com/fr-CA/stories/article/grx-12-speed-mechanical.html' },
   { id: 'tires',       x: 72,   y: 75,  model: '',                              link: '' },
   { id: 'dynamo',      x: 72,   y: 65,  model: 'SON28',                         link: 'https://www.sinewavecycles.com/collections/schmidt/products/schmidt-son28' },
-  { id: 'lighting',    x: 72,   y: 40,  model: 'Sinewave Beacon 2',             link: 'https://www.sinewavecycles.com/products/sinewave-cycles-beacon-2' },
+  { id: 'lighting',    x: 72,   y: 40,  model: 'Son Edelux II',                 link: '' },
   { id: 'wheels',      x: 72,   y: 80,  model: 'Duke Baccara WRX 36m',          link: 'https://www.duke-racingwheels.com/fr/42-173-jante-duke-baccara-36.html#/39-nombre_de_trous-24/51-diametre_jantes-700c/57-profil_jantes-symetrique/60-finition_jantes-ud_paintless' },
 ]
 
@@ -90,7 +91,7 @@ export function BikeSetup() {
     <div className="select-none">
       <div ref={containerRef} className="relative w-full -mx-0 md:mx-0" style={{ paddingBottom: '56%' }}>
         <Image
-          src="/matos/Gemini_Generated_Image_x0ocijx0ocijx0oc.png"
+          src="/matos/Gemini_Generated_Image_serncaserncasern.png"
           alt="Bike setup"
           fill
           className="object-contain rounded-xl"
