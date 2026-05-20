@@ -1730,15 +1730,6 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
     polylinesRef.current.forEach((pl) => pl.setStyle({ opacity: 0.95, weight: 4 }))
     const glowLines = (mapRef.current as any)?._glowLines as Polyline[]
     if (glowLines) glowLines.forEach((pl) => pl.setStyle({ opacity: 0.15 }))
-    // Fit all
-    const L = (window as any)._L
-    if (!L || !mapRef.current) return
-    const allLatLngs = trips.flatMap((t) =>
-      t.coordinates.map(([lng, lat]: [number, number]) => [lat, lng] as [number, number])
-    )
-    if (allLatLngs.length > 0) {
-      mapRef.current.fitBounds(L.latLngBounds(allLatLngs), { padding: [40, 40] })
-    }
   }
 
   useEffect(() => {
