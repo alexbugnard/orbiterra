@@ -48,6 +48,7 @@ interface Trip {
   elev_high_lat: number | null
   elev_high_lng: number | null
   youtube_ids?: string[]
+  comments: Array<{ id: number; athlete_name: string; text: string; created_at: string }> | null
 }
 
 interface Waypoint {
@@ -350,6 +351,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
   const [mapVideoModal, setMapVideoModal] = useState<string | null>(null)
   const [hoveredDistance, setHoveredDistance] = useState<number | null>(null)
   const [journalExpanded, setJournalExpanded] = useState(false)
+  const [commentsOpen, setCommentsOpen] = useState(false)
   const [journalLong, setJournalLong] = useState(false)
   const journalRef = useRef<HTMLParagraphElement>(null)
   const [hoveredRouteDistance, setHoveredRouteDistance] = useState<number | null>(null)
@@ -414,6 +416,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
   type GbifGroupKey = typeof GBIF_GROUPS[number]['key']
 
   const [gbifActive, setGbifActive] = useState(false)
+  const [gbifPanelVisible, setGbifPanelVisible] = useState(true)
   const [gbifLoading, setGbifLoading] = useState(false)
   const [gbifGroups, setGbifGroups] = useState<Set<GbifGroupKey>>(new Set(GBIF_GROUPS.map(g => g.key)))
   const [gbifRadius, setGbifRadius] = useState(50)
@@ -1673,6 +1676,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
     setActiveVideoId(null)
     setHoveredDistance(null)
     setJournalExpanded(false)
+    setCommentsOpen(false)
     setJournalLong(false)
 
     // Fly to the trip bounds
@@ -2167,11 +2171,45 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
               </div>
 
               <h2 className="text-lg font-bold text-white leading-tight mb-1">{selectedTrip.name}</h2>
-              <p className="text-sm text-slate-400">
-                {new Date(selectedTrip.start_date).toLocaleDateString(locale, {
-                  year: 'numeric', month: 'long', day: 'numeric'
-                })}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-slate-400">
+                  {new Date(selectedTrip.start_date).toLocaleDateString(locale, {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                  })}
+                </p>
+                {selectedTrip.comments && selectedTrip.comments.length > 0 && (
+                  <button
+                    onClick={() => setCommentsOpen(o => !o)}
+                    className="flex items-center gap-1 text-xs text-slate-400 hover:text-orange-400 transition-colors"
+                    title={commentsOpen ? 'Hide comments' : 'Show comments'}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span>{selectedTrip.comments.length}</span>
+                  </button>
+                )}
+              </div>
+              {commentsOpen && selectedTrip.comments && selectedTrip.comments.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {selectedTrip.comments.map(c => (
+                    <div key={c.id} className="flex gap-2 items-start">
+                      <div
+                        className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 text-xs font-bold"
+                      >
+                        {c.athlete_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs text-slate-300 font-medium">{c.athlete_name}</div>
+                        <div className="text-xs text-slate-400 leading-relaxed">{c.text}</div>
+                        <div className="text-xs text-slate-600 mt-0.5">
+                          {new Date(c.created_at).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Stats */}
@@ -2547,7 +2585,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
                   <span className="flex-1">{firesActive ? (locale === 'fr' ? 'Masquer les feux' : 'Hide fires') : (locale === 'fr' ? 'Feux actifs (24 h)' : 'Active fires (24 h)')}</span>
                 </button>
                 <button
-                  onClick={() => { if (mapZoom < 9) return; clearMeasure(); setMeasureActive(false); setTrueSizeActive(false); setTimeZoneActive(false); setDaylightActive(false); setGbifActive(v => !v); setGeoToolsOpen(false) }}
+                  onClick={() => { if (mapZoom < 9) return; clearMeasure(); setMeasureActive(false); setTrueSizeActive(false); setTimeZoneActive(false); setDaylightActive(false); setGbifActive(v => !v); setGbifPanelVisible(true); setGeoToolsOpen(false) }}
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors"
                   style={{ color: gbifActive ? '#f97316' : mapZoom < 9 ? '#475569' : '#cbd5e1', borderTop: '1px solid rgba(51,65,85,0.5)', cursor: mapZoom < 9 ? 'not-allowed' : 'pointer' }}
                   onMouseEnter={e => { if (mapZoom >= 9) e.currentTarget.style.background = 'rgba(51,65,85,0.4)' }}
@@ -2604,7 +2642,19 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       )}
 
       {/* GBIF filter panel — top right on mobile, bottom right on desktop */}
-      {gbifActive && (
+      {gbifActive && !gbifPanelVisible && (
+        <button
+          onClick={() => setGbifPanelVisible(true)}
+          className="absolute right-4 z-[1100] flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+          style={{ background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(249,115,22,0.5)', backdropFilter: 'blur(8px)', color: '#f97316', boxShadow: '0 2px 8px rgba(0,0,0,0.4)', ...(isMobile ? { top: 64 } : { bottom: 16 }) }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2"/><path d="M12 8c-2.5 0-4 1.5-4 4s1.5 4 4 4 4-1.5 4-4-1.5-4-4-4"/><path d="M4.5 4.5l3.5 3.5M16 16l3.5 3.5M19.5 4.5L16 8M8 16l-3.5 3.5"/>
+          </svg>
+          {locale === 'fr' ? 'Faune & Flore' : 'Wildlife'}
+        </button>
+      )}
+      {gbifActive && gbifPanelVisible && (
         <div
           className="absolute right-4 z-[1100] rounded-2xl overflow-y-auto"
           style={{ background: 'rgba(15,23,42,0.97)', border: '1px solid rgba(51,65,85,0.8)', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', width: 268, maxHeight: 'calc(100% - 88px)', ...(isMobile ? { top: 64 } : { bottom: 16 }) }}
@@ -2622,7 +2672,10 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
                   <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
                 </svg>
               </button>
-              <button onClick={() => setGbifActive(false)} className="text-slate-500 hover:text-slate-300 transition-colors">
+              <button onClick={() => setGbifPanelVisible(false)} className="text-slate-500 hover:text-slate-300 transition-colors" title={locale === 'fr' ? 'Réduire' : 'Collapse'}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <button onClick={() => setGbifActive(false)} className="text-slate-500 hover:text-slate-300 transition-colors" title={locale === 'fr' ? 'Fermer' : 'Close'}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>

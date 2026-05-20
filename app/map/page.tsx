@@ -144,6 +144,7 @@ async function getMapData() {
       const d = (t.start_date as string).slice(0, 10).replace(/-/g, '')
       return allVideos.filter(v => v.title.includes(d)).map(v => v.youtube_id)
     })(),
+    comments: (t.comments ?? null) as Array<{ id: number; athlete_name: string; text: string; created_at: string }> | null,
   }))
 
   const formattedPlannedRoutes = (plannedRoutes ?? []).map((r: any) => ({

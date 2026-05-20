@@ -35,6 +35,7 @@ interface Trip {
   elev_high_lat: number | null
   elev_high_lng: number | null
   youtube_ids?: string[]
+  comments: Array<{ id: number; athlete_name: string; text: string; created_at: string }> | null
 }
 
 interface Waypoint {
