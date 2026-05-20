@@ -80,7 +80,7 @@ async function getMapData() {
   const [{ data: trips }, { data: waypoints }, { data: plannedRoutes }, { data: videos }, { data: routeCities }, { data: routePois }] = await Promise.all([
     supabase
       .from('trips')
-      .select('id, name, start_date, distance_m, coordinates, journal_fr, journal_en, start_lat, start_lng, elevation, country, max_speed_ms, elev_high, breaks, max_speed_lat, max_speed_lng, elev_high_lat, elev_high_lng')
+      .select('id, name, start_date, distance_m, coordinates, journal_fr, journal_en, start_lat, start_lng, elevation, country, max_speed_ms, elev_high, breaks, max_speed_lat, max_speed_lng, elev_high_lat, elev_high_lng, comments')
       .eq('visible', true)
       .order('start_date', { ascending: true }),
     supabase
