@@ -44,6 +44,13 @@ export interface StravaActivity {
   elev_high: number | null
 }
 
+export interface StravaComment {
+  id: number
+  athlete_name: string
+  text: string
+  created_at: string
+}
+
 export function buildStravaAuthUrl(redirectUri: string): { url: string; state: string } {
   const state = randomBytes(16).toString('hex')
   const params = new URLSearchParams({
@@ -243,4 +250,26 @@ export async function fetchStravaActivitiesSince(
   }
 
   return res.json()
+}
+
+export async function fetchStravaComments(
+  accessToken: string,
+  activityId: number
+): Promise<StravaComment[]> {
+  try {
+    const res = await fetch(
+      `${STRAVA_BASE}/api/v3/activities/${activityId}/comments`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    )
+    if (!res.ok) return []
+    const raw: Array<{ id: number; athlete: { firstname: string; lastname: string }; text: string; created_at: string }> = await res.json()
+    return raw.map(c => ({
+      id: c.id,
+      athlete_name: `${c.athlete.firstname} ${c.athlete.lastname}`.trim(),
+      text: c.text,
+      created_at: c.created_at,
+    }))
+  } catch {
+    return []
+  }
 }
