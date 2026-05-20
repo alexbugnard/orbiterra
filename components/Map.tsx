@@ -2116,6 +2116,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
     const el = journalRef.current
     if (!el) return
     setJournalLong(el.scrollHeight > el.clientHeight + 1)
+    setCommentsOpen(false)
   }, [selectedTripIndex])
 
   return (
