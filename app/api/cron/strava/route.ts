@@ -137,12 +137,16 @@ export async function runStravaSync(): Promise<{ upserted: number; fetched: numb
     .not('strava_id', 'is', null)
     .gte('start_date', thirtyDaysAgo)
 
+  // Serial loop intentional — Strava rate-limits at 100 req/15 min
   for (const trip of recentTrips ?? []) {
-    const comments = await fetchStravaComments(accessToken, trip.strava_id)
-    await supabase
+    const comments = await fetchStravaComments(accessToken, Number(trip.strava_id))
+    const { error: commentUpdateError } = await supabase
       .from('trips')
       .update({ comments: comments.length > 0 ? comments : null })
       .eq('id', trip.id)
+    if (commentUpdateError) {
+      console.error('[strava sync] failed to update comments for trip', trip.id, commentUpdateError)
+    }
   }
 
   await supabase.from('tokens').update({
