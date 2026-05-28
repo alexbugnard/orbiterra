@@ -7,6 +7,7 @@ export function SiteContentEditor({ content }: { content: Record<string, string>
   const [descFr, setDescFr] = useState(content.description_fr ?? '')
   const [descEn, setDescEn] = useState(content.description_en ?? '')
   const [heroUrl, setHeroUrl] = useState(content.hero_image_url ?? '')
+  const [punctures, setPunctures] = useState(parseInt(content.punctures ?? '0', 10))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -23,6 +24,7 @@ export function SiteContentEditor({ content }: { content: Record<string, string>
           description_fr: descFr,
           description_en: descEn,
           hero_image_url: heroUrl,
+          punctures: String(Math.max(0, punctures)),
         }),
       })
       if (!res.ok) throw new Error('Save failed')
@@ -71,6 +73,20 @@ export function SiteContentEditor({ content }: { content: Record<string, string>
           placeholder="https://..."
           className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
         />
+      </div>
+      <div>
+        <label className="text-sm font-medium text-slate-300 block mb-1">Crevaisons 🔧</label>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setPunctures(p => Math.max(0, p - 1))}
+            className="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 text-white font-bold text-lg hover:bg-slate-700 transition-colors"
+          >−</button>
+          <span className="text-3xl font-bold text-orange-400 w-10 text-center">{punctures}</span>
+          <button
+            onClick={() => setPunctures(p => p + 1)}
+            className="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 text-white font-bold text-lg hover:bg-slate-700 transition-colors"
+          >+</button>
+        </div>
       </div>
       <button
         onClick={save}

@@ -286,7 +286,6 @@ export function AboutModal({ onClose }: AboutModalProps) {
               <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-base">🚴</div>
               <h3 className="text-lg font-semibold text-white">{t('vincentTitle')}</h3>
             </div>
-            <p className="text-slate-500 text-xs italic mb-4 ml-11">{t('vincentSubtitle')}</p>
             <blockquote className="border-l-2 border-orange-500/50 pl-4 mb-5 text-orange-300 italic text-sm">{t('vincentQuote')}</blockquote>
             <div className="space-y-3 mb-6">
               {(['vincentText1', 'vincentText2', 'vincentText3', 'vincentText4'] as const).map((key) => (
@@ -328,7 +327,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
                 { name: 'SWIZA', sub: 'Couteaux', url: 'https://www.swiza.com', logo: '/sponsors/swiza-logo.svg' },
                 { name: 'GripGrab', sub: 'Habits vélo', url: 'https://www.gripgrab.com', logo: '/sponsors/gripgrab-logo.png' },
                 { name: 'ICON OUTDOOR', sub: '', url: 'https://icon-outdoor.ch/', logo: '/sponsors/icon-outdoor-logo.webp' },
-                { name: 'bücher&walt', sub: '', url: 'https://www.bucher-walt.ch', logo: '/sponsors/bucherwalt-logo.png' },
+                { name: 'Lusty Drinks', sub: '', url: 'https://lustydrink.com', logo: '/sponsors/lusty.png' },
                 { name: 'Môlechaux Sports', sub: '', url: 'https://www.instagram.com/molechaux_sports_team/', logo: '/sponsors/mst.png' },
                 { name: 'Charmey Sports', sub: '', url: 'https://www.charmeysports.ch/', logo: '/sponsors/charmey-sports-logo.png' },
               ].map((s) => (
@@ -340,7 +339,12 @@ export function AboutModal({ onClose }: AboutModalProps) {
                   className="h-16 px-4 rounded-xl border border-slate-700 bg-slate-800/60 flex items-center justify-center hover:border-orange-500/50 hover:bg-slate-800 transition-colors"
                 >
                   {s.logo ? (
-                    <img src={s.logo} alt={s.name} className="h-8 w-auto" />
+                    <img
+                      src={s.logo}
+                      alt={s.name}
+                      className="h-8 w-auto"
+                      style={s.name === 'Lusty Drinks' ? { filter: 'invert(1) brightness(3)', mixBlendMode: 'screen' } : undefined}
+                    />
                   ) : (
                     <div className="text-center">
                       <div className="text-white font-bold text-sm leading-tight">{s.name}</div>

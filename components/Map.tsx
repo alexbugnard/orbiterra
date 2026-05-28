@@ -2165,8 +2165,8 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
               <h2 className="text-lg font-bold text-white leading-tight mb-1">{selectedTrip.name}</h2>
               <div className="flex items-center gap-2">
                 <p className="text-sm text-slate-400">
-                  {new Date(selectedTrip.start_date).toLocaleDateString(locale, {
-                    year: 'numeric', month: 'long', day: 'numeric'
+                  {new Date(selectedTrip.start_date + (selectedTrip.start_date.length === 10 ? 'T00:00:00Z' : '')).toLocaleDateString(locale, {
+                    year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
                   })}
                 </p>
                 {selectedTrip.comments && selectedTrip.comments.length > 0 && (

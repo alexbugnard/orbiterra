@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { AboutButton } from '@/components/AboutButton'
+import { StatHunterButton } from '@/components/StatHunterButton'
 import { SocialLinks } from '@/components/SocialLinks'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -31,6 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <span>Orbi<span className="text-orange-400">Terra</span></span>
             </Link>
             <nav className="flex items-center gap-3 md:gap-4">
+              <StatHunterButton />
               <AboutButton label={t('about')} />
               <SocialLinks />
               <LanguageSwitcher />

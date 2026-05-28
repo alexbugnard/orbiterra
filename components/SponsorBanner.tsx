@@ -8,7 +8,7 @@ const SPONSORS = [
   { name: 'SWIZA', logo: '/sponsors/swiza-logo.svg', url: 'https://www.swiza.com' },
   { name: 'GripGrab', logo: '/sponsors/gripgrab-logo.png', url: 'https://www.gripgrab.com' },
   { name: 'ICON OUTDOOR', logo: '/sponsors/icon-outdoor-logo.webp', url: 'https://icon-outdoor.ch/' },
-  { name: 'bücher&walt', logo: '/sponsors/bucherwalt-logo.png', url: 'https://www.bucher-walt.ch' },
+  { name: 'Lusty Drinks', logo: '/sponsors/lusty.png', url: 'https://lustydrink.com' },
   { name: 'Môlechaux Sports Team', logo: '/sponsors/mst.png', url: 'https://www.instagram.com/molechaux_sports_team/' },
   { name: 'Charmey Sports', logo: '/sponsors/charmey-sports-logo.png', url: 'https://www.charmeysports.ch/' },
 ]
@@ -59,6 +59,7 @@ export function SponsorBanner({ panelOpen, hidden }: Props) {
             src={sponsor.logo}
             alt={sponsor.name}
             className="h-5 md:h-6 w-auto max-w-[60px] md:max-w-[80px] object-contain"
+            style={sponsor.name === 'Lusty Drinks' ? { filter: 'invert(1) brightness(3)', mixBlendMode: 'screen' } : undefined}
           />
         ) : (
           <span className="text-white font-bold text-sm whitespace-nowrap">{sponsor.name}</span>

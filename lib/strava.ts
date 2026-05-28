@@ -252,6 +252,23 @@ export async function fetchStravaActivitiesSince(
   return res.json()
 }
 
+export async function fetchStravaActivity(
+  accessToken: string,
+  activityId: number
+): Promise<{ name: string; description: string | null } | null> {
+  try {
+    const res = await fetch(
+      `${STRAVA_BASE}/api/v3/activities/${activityId}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    return { name: data.name ?? '', description: data.description ?? null }
+  } catch {
+    return null
+  }
+}
+
 export async function fetchStravaComments(
   accessToken: string,
   activityId: number

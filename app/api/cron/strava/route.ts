@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { timingSafeEqual } from 'crypto'
 import { createSupabaseClient } from '@/lib/supabase'
-import { refreshStravaToken, fetchStravaActivitiesSince, fetchStravaElevation, fetchStravaStreams, detectBreaks, findPeakLocations, fetchStravaPhotos, reverseGeocodeCountry, fetchStravaComments } from '@/lib/strava'
+import { refreshStravaToken, fetchStravaActivitiesSince, fetchStravaElevation, fetchStravaStreams, detectBreaks, findPeakLocations, fetchStravaPhotos, reverseGeocodeCountry, fetchStravaComments, fetchStravaActivity } from '@/lib/strava'
 import { decodePolylineToGeoJSON } from '@/lib/polyline'
 
 // Earliest date to ever sync from — rides before this are ignored
@@ -99,12 +99,11 @@ export async function runStravaSync(): Promise<{ upserted: number; fetched: numb
       continue
     }
 
-    // Backfill journal from Strava description if not yet set manually
-    if (activity.description && tripRow?.id) {
+    // Sync journal from Strava description (always overwrite so edits on Strava propagate)
+    if (tripRow?.id) {
       await supabase.from('trips')
-        .update({ journal_fr: activity.description, journal_en: activity.description })
+        .update({ journal_fr: activity.description ?? null, journal_en: activity.description ?? null })
         .eq('strava_id', activity.id)
-        .is('journal_fr', null)
     }
 
     // Sync Strava photos for this activity
@@ -127,6 +126,22 @@ export async function runStravaSync(): Promise<{ upserted: number; fetched: numb
     }
 
     upserted++
+  }
+
+  // Refresh name + description for activities from the last 10 days (catches Strava edits)
+  const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: recentForMeta } = await supabase
+    .from('trips')
+    .select('id, strava_id')
+    .not('strava_id', 'is', null)
+    .gte('start_date', tenDaysAgo)
+
+  for (const trip of recentForMeta ?? []) {
+    const meta = await fetchStravaActivity(accessToken, Number(trip.strava_id))
+    if (!meta) continue
+    await supabase.from('trips')
+      .update({ name: meta.name, journal_fr: meta.description, journal_en: meta.description })
+      .eq('id', trip.id)
   }
 
   // Refresh comments for all activities from the last 30 days
