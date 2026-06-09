@@ -92,6 +92,17 @@ body {
   border-top-color: #f97316 !important;
 }
 
+/* Trip hover tooltip — strip Leaflet defaults, content is self-styled */
+.trip-tooltip.leaflet-tooltip {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.trip-tooltip.leaflet-tooltip::before {
+  display: none !important;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

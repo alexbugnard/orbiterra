@@ -45,9 +45,9 @@ async function getStats() {
     supabase.from('planned_routes').select('coordinates').limit(1),
   ])
 
-  const totalDistance = (trips ?? []).reduce((sum, t) => sum + (t.distance_m ?? 0), 0)
-  const totalKm = Math.round(totalDistance / 1000)
-  const rideCount = (trips ?? []).length
+  const tripList = trips ?? []
+  const totalKm = Math.round(tripList.reduce((sum, t) => sum + (t.distance_m ?? 0), 0) / 1000)
+  const rideCount = tripList.length
 
   const planned = routes?.[0]?.coordinates as [number, number][] | undefined
 
@@ -119,7 +119,7 @@ export default async function LandingPage() {
   return (
     <main className="relative h-[calc(100vh-57px)] flex flex-col bg-slate-900 overflow-hidden">
 
-      {/* Globe — absolute right, vertically centered, full page height */}
+      {/* Globe — desktop: absolute right, vertically centered */}
       {routeCoords.length > 1 && (
         <div className="absolute hidden md:flex flex-col top-0 bottom-0 z-10 items-center justify-center gap-4" style={{ right: '126px', marginTop: '-130px' }}>
           <div className="w-[min(38vh,340px)] aspect-square opacity-90 pointer-events-none">
@@ -141,6 +141,33 @@ export default async function LandingPage() {
               }}
             >
               ☕ {t('coffeeLinkText', { kmLeft: progress.kmLeft.toLocaleString() })}
+            </a>
+          )}
+        </div>
+      )}
+
+      {/* Globe — mobile: small top-right corner */}
+      {routeCoords.length > 1 && (
+        <div className="absolute top-3 right-3 z-20 flex flex-col items-center gap-1.5 md:hidden">
+          <div className="w-20 h-20 opacity-85 pointer-events-none">
+            <GlobeMap coords={routeCoords} riddenCutoff={riddenCutoff} />
+          </div>
+          {progress && (
+            <a
+              href="https://buymeacoffee.com/vincentmorisetti"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-full font-semibold transition-all duration-300 hover:brightness-110 whitespace-nowrap"
+              style={{
+                fontSize: '0.6rem',
+                background: 'linear-gradient(135deg, #f59e0b 0%, #f97316 50%, #fbbf24 100%)',
+                backgroundSize: '200% 200%',
+                boxShadow: '0 0 10px rgba(251,191,36,0.4), 0 2px 6px rgba(0,0,0,0.4)',
+                animation: 'shimmer 3s ease-in-out infinite',
+                color: '#1c1917',
+              }}
+            >
+              ☕ {progress.kmLeft.toLocaleString()} km
             </a>
           )}
         </div>
@@ -199,23 +226,23 @@ export default async function LandingPage() {
         </div>
 
         {/* Mobile layout — single column, content top, button bottom, never overlapping */}
-        <div className="md:hidden absolute inset-0 z-10 flex flex-col items-center justify-between text-center px-6 pt-[60px] pb-4">
+        <div className="md:hidden absolute inset-0 z-10 flex flex-col items-center justify-between text-center px-6 pt-10 pb-6">
           {/* Logo + title + subtitles */}
           <div>
-            <div className="mb-6">
+            <div className="mb-4">
               <AnimatedLogo>
                 <Image
                   src="/logo/Capture d'écran 2026-04-20 085244.png"
                   alt="OrbiTerra"
-                  width={96}
-                  height={96}
-                  className="mx-auto rounded-full bg-white/90 p-2 shadow-xl w-24 h-24"
+                  width={80}
+                  height={80}
+                  className="mx-auto rounded-full bg-white/90 p-2 shadow-xl w-20 h-20"
                   loading="eager"
                   priority
                 />
               </AnimatedLogo>
             </div>
-            <h1 className="text-4xl font-extrabold text-white mb-2 leading-tight tracking-tight">
+            <h1 className="text-3xl font-extrabold text-white mb-2 leading-tight tracking-tight">
               Orbi<span className="text-orange-400">Terra</span>
             </h1>
             <p className="text-base text-slate-300 font-medium mb-2">
@@ -226,8 +253,8 @@ export default async function LandingPage() {
             </p>
           </div>
 
-          {/* Button + globe pinned to bottom */}
-          <div className="flex flex-col items-center gap-4">
+          {/* Button pinned to bottom */}
+          <div className="mb-3">
             <AnimatedButton>
               <Link
                 href="/map"
@@ -239,13 +266,6 @@ export default async function LandingPage() {
                 </svg>
               </Link>
             </AnimatedButton>
-            {routeCoords.length > 1 && (
-              <div className="pointer-events-none">
-                <div className="w-36 h-36 opacity-90">
-                  <GlobeMap coords={routeCoords} riddenCutoff={riddenCutoff} />
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -253,9 +273,9 @@ export default async function LandingPage() {
       {/* Route map + stats */}
       {rideCount > 0 && (
         <div className="border-t border-slate-800 bg-slate-900/80 flex-shrink-0">
-          <div className="max-w-2xl mx-auto px-6 py-4 md:py-8">
-            <div className="space-y-3 md:space-y-6">
-              <div className="grid grid-cols-2 gap-4 md:gap-8 text-center">
+          <div className="max-w-2xl mx-auto px-4 py-2 md:py-8">
+            <div className="space-y-2 md:space-y-6">
+              <div className="grid grid-cols-2 gap-3 md:gap-8 text-center">
                 <div>
                   <div className="text-2xl md:text-3xl font-bold text-white"><CountUp value={totalKm} /></div>
                   <div className="text-xs md:text-sm text-slate-500 mt-0.5">{t('kmRidden')}</div>
@@ -268,7 +288,7 @@ export default async function LandingPage() {
 
               {progress && (
                 <div>
-                  <div className="flex items-center justify-between mb-1.5 md:mb-2">
+                  <div className="flex items-center justify-between mb-1 md:mb-2">
                     <span className="text-xs text-slate-500 uppercase tracking-wider">{t('routeProgress')}</span>
                     <span className="text-xs md:text-sm font-bold text-cyan-400">{progress.pct}%</span>
                   </div>
@@ -278,7 +298,7 @@ export default async function LandingPage() {
                       style={{ width: `${progress.pct}%` }}
                     />
                   </div>
-                  <div className="flex justify-between mt-1.5 text-xs text-slate-500">
+                  <div className="flex justify-between mt-1 text-xs text-slate-500">
                     <span>Prudhoe Bay</span>
                     <span>{progress.kmLeft.toLocaleString()} km {t('remaining')}</span>
                     <span>Ushuaia</span>

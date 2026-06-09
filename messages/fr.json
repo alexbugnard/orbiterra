@@ -115,11 +115,18 @@
     "guideSectionHomeScreenIos": "iPhone — Ouvrez cette page dans Safari, appuyez sur le bouton Partager, puis « Sur l'écran d'accueil ».",
     "guideSectionHomeScreenAndroid": "Android — Ouvrez cette page dans Chrome, appuyez sur le menu (trois points), puis « Ajouter à l'écran d'accueil ».",
     "guideSectionSuggestTitle": "Suggérer une fonctionnalité",
-    "guideSectionSuggestText": "Vous avez une idée pour améliorer la carte ou le site ? Envoyez-nous un message."
+    "guideSectionSuggestText": "Vous avez une idée pour améliorer la carte ou le site ? Envoyez-nous un message.",
+    "changelogTab": "Journal",
+    "changelogTitle": "Historique des versions",
+    "changelogV10desc": "Bootstrap Next.js, schema Supabase, sync Strava (OAuth + polylines + cron) et Flickr (photos GPS), carte Leaflet avec etapes et photos, pages detail par etape, espace admin (login, gestion, editeur de contenu), bilingue FR/EN.",
+    "changelogV11desc": "Profil deceleration interactif avec hover, couche meteo Open-Meteo le long du trace, trace prevu Alaska-Ushuaia en superposition, sync photos Strava sur la carte, refonte mobile complete (panneau coulissant bas), stats (denivele, pays traverses), rebrand OrbiTerra, crons consolides en tache journaliere.",
+    "changelogV12desc": "Marqueurs vitesse max, altitude max et pauses avec lignes de repere sur la carte. Globe anime sur la page daccueil, position live de Vincent. Villes et POIs (montagnes, cols, lacs) avec fiches Wikipedia (200+ entrees). Video YouTube du jour par etape (correspondance automatique par date) avec apercu hover et modal plein ecran. Sponsors Charmey Sports et Molechaux. Journal expansible 3 lignes.",
+    "changelogV13desc": "Onglet Medias (galerie photos+videos avec lightbox, API /api/gallery). Texte de Vincent dans About, lien dons cafe. Nouvelle page daccueil, favicon velo. Cercles polaires, horloge lever/coucher du soleil. Onglet Setup velo (Fairlight + equipement complet avec liens). Outils geo : Suisse vraie taille (draggable), mesure de distance, couche fuseau horaire, superposition jour/nuit anime. Sync commentaires Strava (30 derniers jours) affiches dans le panneau lateral.",
+    "changelogPascaleDesc": "Modal StatHunter avec stats par etape (vitesse, denivele, distance). Carrousel mobile dans lAbout. Sync description Strava vers le journal des etapes. Tente, selle et eclairage dans longlet Setup. Sponsor Lusty."
   },
   "bikeSetup": {
     "viewProduct": "Voir le produit",
-"frame": "Cadre",
+    "frame": "Cadre",
     "handlebar": "Guidon",
     "stem": "Potence",
     "extensions": "Prolongateurs",

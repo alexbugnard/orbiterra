@@ -34,6 +34,7 @@ interface Trip {
   id: string
   name: string
   start_date: string
+  end_date: string | null
   distance_m: number
   journal_fr: string | null
   journal_en: string | null
@@ -57,6 +58,7 @@ interface Waypoint {
   lng: number
   url_large: string
   title: string | null
+  trip_id: string | null
 }
 
 interface PlannedRoute {
@@ -321,13 +323,15 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
   const mapRef = useRef<LeafletMap | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const polylinesRef = useRef<Polyline[]>([])
+  const tripEndpointMarkersRef = useRef<any[]>([])
   const selectedTripIndexRef = useRef<number | null>(null)
   const hoverMarkerRef = useRef<any>(null)
   const cumDistsRef = useRef<number[] | null>(null)
   const weatherLayerRef = useRef<WeatherLayer | null>(null)
   const waypointMarkersRef = useRef<any[]>([])
   const [showWeather, setShowWeather] = useState(false)
-  const [basemap, setBasemap] = useState<'dark' | 'topo'>('dark')
+  const [basemap, setBasemap] = useState<'dark' | 'topo' | 'light'>('dark')
+  const contourLayerRef = useRef<any>(null)
   const [mapZoom, setMapZoom] = useState(6)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [selectedRouteIndex, setSelectedRouteIndex] = useState<number | null>(null)
@@ -349,6 +353,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
   const [selectedTripIndex, setSelectedTripIndex] = useState<number | null>(null)
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null)
   const [mapVideoModal, setMapVideoModal] = useState<string | null>(null)
+  const [tripPhotoLightbox, setLightboxPhoto] = useState<string | null>(null)
   const [hoveredDistance, setHoveredDistance] = useState<number | null>(null)
   const [journalExpanded, setJournalExpanded] = useState(false)
   const [commentsOpen, setCommentsOpen] = useState(false)
@@ -738,13 +743,25 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       })
       const charmeyMarker = L.marker(charmeyLatLng(), { icon: charmeyIcon, pane: 'markerPane', interactive: false }).addTo(map)
 
-      // Drag support — document-level events so dragging works even outside the map
+      // Invisible large drag handle marker at centroid — reliable touch target on mobile
+      const dragHandleIcon = L.divIcon({
+        className: '',
+        html: '<div style="width:60px;height:60px;border-radius:50%;cursor:grab;touch-action:none;background:transparent"></div>',
+        iconAnchor: [30, 30],
+      })
+      function centroidLatLng(): [number, number] {
+        const [cLat, cLng] = trueSizeOffsetRef.current
+        return [cLat, cLng]
+      }
+      const dragHandle = L.marker(centroidLatLng(), { icon: dragHandleIcon, pane: 'markerPane', interactive: true, zIndexOffset: 1000 }).addTo(map)
+
+      // Drag support — document-level mouse + touch events
       let lastClientX = 0
       let lastClientY = 0
 
-      function onDocMouseMove(e: MouseEvent) {
+      function applyDelta(clientX: number, clientY: number) {
         const rect = map.getContainer().getBoundingClientRect()
-        const curPx = L.point(e.clientX - rect.left, e.clientY - rect.top)
+        const curPx = L.point(clientX - rect.left, clientY - rect.top)
         const lastPx = L.point(lastClientX - rect.left, lastClientY - rect.top)
         const curLL = map.containerPointToLatLng(curPx)
         const lastLL = map.containerPointToLatLng(lastPx)
@@ -752,41 +769,63 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
           trueSizeOffsetRef.current[0] + (curLL.lat - lastLL.lat),
           trueSizeOffsetRef.current[1] + (curLL.lng - lastLL.lng),
         ]
-        lastClientX = e.clientX
-        lastClientY = e.clientY
+        lastClientX = clientX
+        lastClientY = clientY
         layer.setLatLngs(translated())
         charmeyMarker.setLatLng(charmeyLatLng())
+        dragHandle.setLatLng(centroidLatLng())
       }
 
-      function onDocMouseUp() {
+      function onDocMouseMove(e: MouseEvent) { applyDelta(e.clientX, e.clientY) }
+      function onDocTouchMove(e: TouchEvent) { e.preventDefault(); applyDelta(e.touches[0].clientX, e.touches[0].clientY) }
+
+      function stopDrag() {
         map.dragging.enable()
         const container = map.getContainer?.()
         if (container) container.style.cursor = 'grab'
         document.removeEventListener('mousemove', onDocMouseMove)
-        document.removeEventListener('mouseup', onDocMouseUp)
+        document.removeEventListener('mouseup', stopDrag)
+        document.removeEventListener('touchmove', onDocTouchMove)
+        document.removeEventListener('touchend', stopDrag)
       }
 
-      function onLayerMouseDown(e: any) {
-        L.DomEvent.stop(e)
-        lastClientX = e.originalEvent.clientX
-        lastClientY = e.originalEvent.clientY
+      function startDrag(clientX: number, clientY: number) {
+        lastClientX = clientX
+        lastClientY = clientY
         map.dragging.disable()
         const container = map.getContainer?.()
         if (container) container.style.cursor = 'grabbing'
         document.addEventListener('mousemove', onDocMouseMove)
-        document.addEventListener('mouseup', onDocMouseUp)
+        document.addEventListener('mouseup', stopDrag)
+        document.addEventListener('touchmove', onDocTouchMove, { passive: false })
+        document.addEventListener('touchend', stopDrag)
+      }
+
+      function onLayerMouseDown(e: any) {
+        L.DomEvent.stop(e)
+        startDrag(e.originalEvent.clientX, e.originalEvent.clientY)
+      }
+      function onLayerTouchStart(e: any) {
+        L.DomEvent.stop(e)
+        startDrag(e.originalEvent.touches[0].clientX, e.originalEvent.touches[0].clientY)
       }
 
       layer.on('mousedown', onLayerMouseDown)
+      layer.on('touchstart', onLayerTouchStart)
       layer.on('mouseover', () => { (map.getContainer?.() ?? document.body).style.cursor = 'grab' })
       layer.on('mouseout', () => { (map.getContainer?.() ?? document.body).style.cursor = '' })
+      dragHandle.on('mousedown', onLayerMouseDown)
+      dragHandle.on('touchstart', onLayerTouchStart)
 
       return () => {
         layer.remove()
         charmeyMarker.remove()
+        dragHandle.remove()
         trueSizeLayerRef.current = null
         document.removeEventListener('mousemove', onDocMouseMove)
-        document.removeEventListener('mouseup', onDocMouseUp)
+        document.removeEventListener('mouseup', stopDrag)
+        document.removeEventListener('touchmove', onDocTouchMove)
+        document.removeEventListener('touchend', stopDrag)
         map.dragging.enable();
         (map.getContainer?.() ?? document.body).style.cursor = ''
       }
@@ -1427,6 +1466,12 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
         attribution: '© <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
         maxZoom: 17,
       }).addTo(map)
+    } else if (basemap === 'light') {
+      tileLayerRef.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20,
+      }).addTo(map)
     } else {
       tileLayerRef.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
@@ -1436,11 +1481,70 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
     }
   }, [basemap])
 
+  // Contour overlay — OpenTopoMap tiles blended over dark/light basemap via CSS mix-blend-mode
+  // mix-blend-mode:multiply  → white bg transparent, brown lines visible (light basemap)
+  // mix-blend-mode:screen    → inverted tiles: black bg transparent, light lines visible (dark basemap)
+  const CONTOUR_ZOOM = 10
+  useEffect(() => {
+    const map = mapRef.current
+    const L = (window as any)._L
+    if (!map || !L) return
+
+    function updateContours() {
+      const zoom = map.getZoom()
+
+      if (basemap === 'topo' || zoom < CONTOUR_ZOOM) {
+        contourLayerRef.current?.remove()
+        contourLayerRef.current = null
+        return
+      }
+
+      if (contourLayerRef.current) {
+        // Re-apply style in case basemap changed without zoom change
+        const paneEl = map.getPane('contourPane') as HTMLElement | undefined
+        if (paneEl) applyPaneStyle(paneEl)
+        return
+      }
+
+      if (!map.getPane('contourPane')) {
+        map.createPane('contourPane').style.zIndex = '201'
+      }
+      const paneEl = map.getPane('contourPane') as HTMLElement
+      applyPaneStyle(paneEl)
+
+      contourLayerRef.current = L.tileLayer(
+        'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+        { attribution: '© OpenTopoMap', maxZoom: 17, pane: 'contourPane', subdomains: 'abc' }
+      ).addTo(map)
+    }
+
+    function applyPaneStyle(el: HTMLElement) {
+      if (basemap === 'dark') {
+        el.style.filter = 'invert(1) hue-rotate(180deg) brightness(1.1) saturate(0.4)'
+        el.style.mixBlendMode = 'screen'
+        el.style.opacity = '0.55'
+      } else {
+        el.style.filter = 'saturate(0.3) brightness(1.1)'
+        el.style.mixBlendMode = 'multiply'
+        el.style.opacity = '0.55'
+      }
+    }
+
+    map.on('zoomend', updateContours)
+    updateContours()
+
+    return () => {
+      map.off('zoomend', updateContours)
+      contourLayerRef.current?.remove()
+      contourLayerRef.current = null
+    }
+  }, [basemap])
+
   // Restyle map objects when basemap changes
   useEffect(() => {
     if (!mapRef.current) return
-    const tripColor = basemap === 'topo' ? '#dc2626' : '#f97316'
-    const plannedColor = basemap === 'topo' ? '#1d4ed8' : '#22d3ee'
+    const tripColor = basemap === 'dark' ? '#f97316' : '#dc2626'
+    const plannedColor = basemap === 'dark' ? '#22d3ee' : '#1d4ed8'
 
     // Trip polylines
     polylinesRef.current.forEach((pl) => pl.setStyle({ color: tripColor }))
@@ -1452,7 +1556,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
 
     // Planned route lines
     plannedLinesRef.current.forEach(({ segLines, routeColor }) => {
-      const color = basemap === 'topo' ? '#1d4ed8' : routeColor
+      const color = basemap === 'dark' ? routeColor : '#1d4ed8'
       segLines.forEach(({ line }) => line.setStyle({ color }))
     })
 
@@ -1472,24 +1576,28 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
     })
   }
 
-  function calloutIcon(L: any, label: string, color: string, lineHeight: number, side: 'left' | 'right' | 'center') {
-    // The dot must sit exactly at the geographic coordinate.
-    // iconAnchor is always the dot center: [dotCenterX, dotCenterY].
-    // The label is shifted left/right via absolute positioning so the dot stays pinned.
+  function calloutIcon(L: any, label: string, color: string, lineHeight: number, side: 'left' | 'right' | 'center', shift = 56) {
     const dotSize = 9
-    const labelW = 88
-    const iconWidth = labelW + 40  // extra room for side shift without clipping
+    const labelW = 90
+    const labelHeight = 26
+    // icon wide enough to hold label shifted either side without clipping
+    const iconWidth = labelW + shift * 2 + 20
     const dotCenterX = iconWidth / 2
-    const labelHeight = 26  // approx rendered height of label box
     const dotCenterY = labelHeight + lineHeight + dotSize / 2
-
-    const labelShift = side === 'right' ? -20 : side === 'left' ? 20 : 0
+    const labelShift = side === 'right' ? shift : side === 'left' ? -shift : 0
     const labelLeft = dotCenterX - labelW / 2 + labelShift
 
+    const labelCenterX = labelLeft + labelW / 2
+    const lineX1 = labelCenterX
+    const lineY1 = labelHeight
+    const lineX2 = dotCenterX
+    const lineY2 = labelHeight + lineHeight
     return L.divIcon({
       html: `<div style="position:relative;width:${iconWidth}px;height:${dotCenterY + dotSize}px;pointer-events:none">
         <div style="position:absolute;left:${labelLeft}px;top:0;width:${labelW}px;background:rgba(10,15,28,0.95);border:2px solid ${color};border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;color:${color};white-space:nowrap;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,0.6);letter-spacing:0.3px">${label}</div>
-        <div style="position:absolute;left:${dotCenterX - 1}px;top:${labelHeight}px;width:2px;height:${lineHeight}px;background:${color};opacity:0.7"></div>
+        <svg style="position:absolute;left:0;top:0;width:${iconWidth}px;height:${dotCenterY + dotSize}px;overflow:visible;pointer-events:none">
+          <line x1="${lineX1}" y1="${lineY1}" x2="${lineX2}" y2="${lineY2}" stroke="${color}" stroke-width="1.5" stroke-opacity="0.7"/>
+        </svg>
         <div style="position:absolute;left:${dotCenterX - dotSize / 2}px;top:${labelHeight + lineHeight}px;width:${dotSize}px;height:${dotSize}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 0 3px ${color}44"></div>
       </div>`,
       className: '',
@@ -1547,15 +1655,38 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       })
     }
 
-    // Sort by position along track then stagger overlapping markers
+    // Sort by position along track, then assign non-overlapping slots
     pending.sort((a, b) => a.idx - b.idx)
-    const overlapWindow = Math.max(4, Math.floor(coords.length / 60))
-    for (let i = 1; i < pending.length; i++) {
-      if (pending[i].idx - pending[i - 1].idx < overlapWindow) {
-        pending[i].lineH = pending[i - 1].lineH + 20
-        // Flip side to reduce label overlap
-        pending[i].side = pending[i - 1].side === 'left' ? 'right' : 'left'
+    const overlapWindow = Math.max(6, Math.floor(coords.length / 40))
+
+    // Slots alternate side and stagger lineH so labels never share the same visual space.
+    // With shift=56 and labelW=90: opposite-side labels at same lineH have 22px horizontal gap → safe.
+    // Same-side labels are separated by 34px vertically (labelHeight=26 + 8px gap).
+    const LABEL_H = 26
+    const GAP = 8
+    const STEP = LABEL_H + GAP
+    const SLOTS: { side: 'left' | 'right'; lineH: number }[] = [
+      { side: 'right', lineH: 20 },
+      { side: 'left',  lineH: 20 },
+      { side: 'right', lineH: 20 + STEP },
+      { side: 'left',  lineH: 20 + STEP },
+      { side: 'right', lineH: 20 + STEP * 2 },
+      { side: 'left',  lineH: 20 + STEP * 2 },
+    ]
+
+    // For each marker, collect which slots are used by nearby predecessors and pick the first free one
+    for (let i = 0; i < pending.length; i++) {
+      const nearby = pending.slice(0, i).filter(p => pending[i].idx - p.idx < overlapWindow)
+      if (nearby.length === 0) {
+        // Keep default assignment but normalise to nearest slot
+        const def = SLOTS.find(s => s.side === pending[i].side) ?? SLOTS[0]
+        pending[i].side = def.side; pending[i].lineH = def.lineH
+        continue
       }
+      const used = new Set(nearby.map(p => `${p.side}-${p.lineH}`))
+      const slot = SLOTS.find(s => !used.has(`${s.side}-${s.lineH}`)) ?? SLOTS[i % SLOTS.length]
+      pending[i].side = slot.side
+      pending[i].lineH = slot.lineH
     }
 
     const created: any[] = []
@@ -1783,6 +1914,34 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
         hitZone.on('click', (e: any) => { L.DomEvent.stopPropagation(e); selectTrip(index) })
         tripHitZones.push(hitZone)
 
+        // Dynamic time tooltip — shows interpolated time at cursor position
+        const startMs = trip.start_date ? new Date(trip.start_date).getTime() : null
+        const endMs = trip.end_date ? new Date(trip.end_date).getTime() : null
+        const tripCoords = trip.coordinates
+        const nCoords = tripCoords.length
+
+        function buildTooltipHtml(fraction: number): string {
+          if (startMs === null) return ''
+          const ms = endMs ? startMs + fraction * (endMs - startMs) : startMs
+          const d = new Date(ms)
+          const lang = locale === 'fr' ? 'fr-FR' : 'en-GB'
+          const dateStr = d.toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Zurich' })
+          const cetH = d.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Zurich', hour12: false }).slice(0, 2) + 'h'
+          const tz = currentTz ?? null
+          if (tz) {
+            const locH = d.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit', timeZone: tz, hour12: false }).slice(0, 2) + 'h'
+            return `<span style="color:#94a3b8;font-size:10px">${dateStr}</span><br><span style="font-size:13px;font-weight:700">${cetH} <span style="color:#94a3b8;font-weight:400;font-size:10px">CET 🏠</span></span><span style="color:#475569;margin:0 4px">/</span><span style="font-size:13px;font-weight:700">${locH} <span style="color:#94a3b8;font-weight:400;font-size:10px">${locale === 'fr' ? 'local' : 'local'}</span></span>`
+          }
+          return `<span style="color:#94a3b8;font-size:10px">${dateStr}</span><br><span style="font-size:13px;font-weight:700">${cetH} <span style="color:#94a3b8;font-weight:400;font-size:10px">CET 🏠</span></span>`
+        }
+
+        if (startMs !== null) {
+          hitZone.bindTooltip(
+            `<div style="background:rgba(15,23,42,0.95);border:1px solid rgba(249,115,22,0.4);color:#e2e8f0;padding:6px 11px;border-radius:8px;font-size:12px;white-space:nowrap;pointer-events:none;line-height:1.5">${buildTooltipHtml(0)}</div>`,
+            { sticky: true, direction: 'top', offset: [0, -10], opacity: 1, className: 'trip-tooltip' }
+          )
+        }
+
         hitZone.on('mouseover', () => {
           if (selectedTripIndexRef.current === null) line.setStyle({ weight: 6, opacity: 1 })
         })
@@ -1794,8 +1953,21 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
           }
         })
 
-        // Map → Profile: track mouse position along polyline
+        // Map → Profile: track mouse position + update time tooltip
         hitZone.on('mousemove', (e: any) => {
+          // Update tooltip with interpolated time at cursor
+          if (startMs !== null && nCoords > 1) {
+            const { lat, lng } = e.latlng
+            let minD = Infinity, closestI = 0
+            for (let ci = 0; ci < nCoords; ci++) {
+              const dlat = tripCoords[ci][1] - lat, dlng = tripCoords[ci][0] - lng
+              const d2 = dlat * dlat + dlng * dlng
+              if (d2 < minD) { minD = d2; closestI = ci }
+            }
+            const fraction = closestI / (nCoords - 1)
+            hitZone.setTooltipContent(`<div style="background:rgba(15,23,42,0.95);border:1px solid rgba(249,115,22,0.4);color:#e2e8f0;padding:6px 11px;border-radius:8px;font-size:12px;white-space:nowrap;pointer-events:none;line-height:1.5">${buildTooltipHtml(fraction)}</div>`)
+          }
+
           const isExternalMode = externalHoverRef.current !== undefined
           if (!isExternalMode && selectedTripIndexRef.current !== index) return
           if (isExternalMode && index !== 0) return
@@ -1809,6 +1981,52 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       })
 
       ;(map as any)._glowLines = glowLines
+
+      // Start / end dots — collect all, merge clusters within 5 km
+      {
+        const MERGE_KM = 5
+        const R = 6371
+        function distKm(a: [number, number], b: [number, number]) {
+          const dLat = (b[0] - a[0]) * Math.PI / 180
+          const dLng = (b[1] - a[1]) * Math.PI / 180
+          const x = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * Math.PI / 180) * Math.cos(b[0] * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+          return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x))
+        }
+
+        // Gather all raw endpoints [lat, lng]
+        const raw: [number, number][] = []
+        for (const trip of trips) {
+          if (trip.coordinates.length < 2) continue
+          const [sLng, sLat] = trip.coordinates[0]
+          const [eLng, eLat] = trip.coordinates[trip.coordinates.length - 1]
+          raw.push([sLat, sLng], [eLat, eLng])
+        }
+
+        // Greedy merge: assign each point to first cluster within MERGE_KM, else new cluster
+        const clusters: [number, number][][] = []
+        for (const pt of raw) {
+          let merged = false
+          for (const cluster of clusters) {
+            if (distKm(cluster[0], pt) < MERGE_KM) { cluster.push(pt); merged = true; break }
+          }
+          if (!merged) clusters.push([pt])
+        }
+
+        // Render one dot per cluster (centroid)
+        for (const cluster of clusters) {
+          const lat = cluster.reduce((s, p) => s + p[0], 0) / cluster.length
+          const lng = cluster.reduce((s, p) => s + p[1], 0) / cluster.length
+          const count = cluster.length
+          const size = count > 1 ? 10 : 7
+          const icon = L.divIcon({
+            className: '',
+            html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:#fff;border:2px solid #f97316;box-shadow:0 0 4px rgba(249,115,22,0.6);opacity:0.9"></div>`,
+            iconAnchor: [size / 2, size / 2],
+          })
+          const marker = L.marker([lat, lng], { icon, interactive: false, pane: 'markerPane' }).addTo(map)
+          tripEndpointMarkersRef.current.push(marker)
+        }
+      }
 
       // Planned routes — ridden segments orange solid, unridden dashed route color
       for (let routeIdx = 0; routeIdx < (plannedRoutes ?? []).length; routeIdx++) {
@@ -2094,6 +2312,8 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       weatherLayerRef.current = null
       breakMarkersRef.current.forEach(m => m.remove())
       breakMarkersRef.current = []
+      tripEndpointMarkersRef.current.forEach(m => m.remove())
+      tripEndpointMarkersRef.current = []
       mapRef.current?.remove()
       mapRef.current = null
       polylinesRef.current = []
@@ -2276,6 +2496,27 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
                 <p className="text-sm text-slate-600 italic">{t('noJournal')}</p>
               )}
 
+              {/* Trip photos */}
+              {(() => {
+                const tripPhotos = waypoints.filter(w => w.trip_id === selectedTrip.id && w.url_large)
+                if (tripPhotos.length === 0) return null
+                return (
+                  <div className="pt-2 border-t border-slate-700/50">
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {tripPhotos.map(w => (
+                        <img
+                          key={w.id}
+                          src={w.url_large}
+                          alt={w.title ?? ''}
+                          className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => setLightboxPhoto(w.url_large)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* Videos of the day */}
               {(selectedTrip.youtube_ids ?? []).length > 0 && (
                 <div className="pt-2 border-t border-slate-700/50 space-y-2">
@@ -2368,11 +2609,11 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
                 onClick={() => setGeoToolsOpen(v => !v)}
                 className="flex items-center gap-2 px-3 py-2 md:px-3 md:py-2 rounded-xl text-sm font-semibold transition-all active:scale-95"
                 style={{
-                  background: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive || gbifActive || popDensityActive || lightningActive || firesActive || basemap === 'topo' || showWeather) ? 'rgba(249,115,22,0.2)' : 'rgba(15,23,42,0.85)',
-                  border: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive || gbifActive || popDensityActive || lightningActive || firesActive || basemap === 'topo' || showWeather) ? '1px solid rgba(249,115,22,0.6)' : '1px solid rgba(100,116,139,0.6)',
+                  background: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive || gbifActive || popDensityActive || lightningActive || firesActive || basemap !== 'dark' || showWeather) ? 'rgba(249,115,22,0.2)' : 'rgba(15,23,42,0.85)',
+                  border: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive || gbifActive || popDensityActive || lightningActive || firesActive || basemap !== 'dark' || showWeather) ? '1px solid rgba(249,115,22,0.6)' : '1px solid rgba(100,116,139,0.6)',
                   backdropFilter: 'blur(8px)',
-                  color: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive || gbifActive || popDensityActive || lightningActive || firesActive || basemap === 'topo' || showWeather) ? '#f97316' : '#cbd5e1',
-                  boxShadow: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive || gbifActive || popDensityActive || lightningActive || firesActive || basemap === 'topo' || showWeather) ? '0 0 12px rgba(249,115,22,0.2)' : '0 2px 8px rgba(0,0,0,0.4)',
+                  color: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive || gbifActive || popDensityActive || lightningActive || firesActive || basemap !== 'dark' || showWeather) ? '#f97316' : '#cbd5e1',
+                  boxShadow: (geoToolsOpen || trueSizeActive || timeZoneActive || daylightActive || gbifActive || popDensityActive || lightningActive || firesActive || basemap !== 'dark' || showWeather) ? '0 0 12px rgba(249,115,22,0.2)' : '0 2px 8px rgba(0,0,0,0.4)',
                 }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -2398,19 +2639,25 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
                     </button>
                   </div>
                 )}
-                {/* Basemap toggle */}
-                <button
-                  onClick={() => { setBasemap(v => v === 'dark' ? 'topo' : 'dark'); setGeoToolsOpen(false) }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors"
-                  style={{ color: basemap === 'topo' ? '#fbbf24' : '#cbd5e1', borderBottom: '1px solid rgba(51,65,85,0.5)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(51,65,85,0.4)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 20l6-12 4 7 3-4 5 9H3z"/>
-                  </svg>
-                  {basemap === 'topo' ? (locale === 'fr' ? 'Masquer Topo' : 'Hide Topo') : (locale === 'fr' ? 'Fond Topo' : 'Topo basemap')}
-                </button>
+                {/* Basemap selector */}
+                <div style={{ borderBottom: '1px solid rgba(51,65,85,0.5)' }}>
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: basemap !== 'dark' ? '#f97316' : '#cbd5e1', flexShrink: 0 }}>
+                      <path d="M3 20l6-12 4 7 3-4 5 9H3z"/>
+                    </svg>
+                    <select
+                      value={basemap}
+                      onChange={e => { setBasemap(e.target.value as 'dark' | 'topo' | 'light'); setGeoToolsOpen(false) }}
+                      onClick={e => e.stopPropagation()}
+                      className="flex-1 text-sm font-medium rounded-lg px-2 py-1 outline-none cursor-pointer"
+                      style={{ background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(51,65,85,0.8)', color: basemap === 'topo' ? '#fbbf24' : basemap === 'light' ? '#38bdf8' : '#cbd5e1' }}
+                    >
+                      <option value="dark">{locale === 'fr' ? '🌑 Sombre' : '🌑 Dark'}</option>
+                      <option value="light">{locale === 'fr' ? '☀️ Clair' : '☀️ Light'}</option>
+                      <option value="topo">⛰️ Topo</option>
+                    </select>
+                  </div>
+                </div>
                 {/* Weather toggle */}
                 <button
                   onClick={() => { if (mapZoom >= WEATHER_ZOOM_THRESHOLD) { setShowWeather(v => !v); setGeoToolsOpen(false) } }}
@@ -2984,6 +3231,28 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       <SponsorBanner
         hidden={selectedTrip !== null || selectedRouteIndex !== null}
       />
+
+      {tripPhotoLightbox && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/92"
+          onClick={() => setLightboxPhoto(null)}
+        >
+          <img
+            src={tripPhotoLightbox}
+            alt=""
+            className="max-w-full max-h-full rounded-xl shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setLightboxPhoto(null)}
+            className="absolute top-4 right-4 text-white/80 hover:text-white"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      )}
 
       {mapVideoModal && (
         <div

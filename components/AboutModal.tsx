@@ -13,7 +13,7 @@ interface AboutModalProps {
 export function AboutModal({ onClose }: AboutModalProps) {
   const t = useTranslations('about')
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([])
-  const [tab, setTab] = useState<'about' | 'gallery' | 'guide' | 'setup'>('about')
+  const [tab, setTab] = useState<'about' | 'gallery' | 'guide' | 'setup' | 'changelog'>('about')
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const lightboxIndexRef = useRef<number | null>(null)
   useEffect(() => { lightboxIndexRef.current = lightboxIndex }, [lightboxIndex])
@@ -64,7 +64,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-4 md:px-8 py-4 md:py-5 border-b border-slate-700/50 flex-shrink-0 gap-2">
           <div className="flex items-center gap-0.5 bg-slate-800/60 rounded-xl p-1 min-w-0">
-            {(['about', 'gallery', 'guide', 'setup'] as const).map((t2) => (
+            {(['about', 'gallery', 'guide', 'setup', 'changelog'] as const).map((t2) => (
               <button
                 key={t2}
                 onClick={() => setTab(t2)}
@@ -75,7 +75,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
                   border: tab === t2 ? '1px solid rgba(249,115,22,0.3)' : '1px solid transparent',
                 }}
               >
-                {t2 === 'about' ? t('title') : t2 === 'gallery' ? 'Media' : t2 === 'guide' ? t('guideTab') : 'Setup'}
+                {t2 === 'about' ? t('title') : t2 === 'gallery' ? 'Media' : t2 === 'guide' ? t('guideTab') : t2 === 'changelog' ? t('changelogTab') : 'Setup'}
               </button>
             ))}
           </div>
@@ -88,6 +88,70 @@ export function AboutModal({ onClose }: AboutModalProps) {
             </svg>
           </button>
         </div>
+
+        {/* Changelog tab */}
+        {tab === 'changelog' && (
+          <div className="flex-1 overflow-y-auto px-6 md:px-10 py-8">
+            <h3 className="text-lg font-semibold text-white mb-8">{t('changelogTitle')}</h3>
+            <div className="relative">
+              {/* Vertical propagation line — behind dots */}
+              <div className="absolute left-[19px] top-0 bottom-0 w-px bg-gradient-to-b from-orange-500 via-slate-600 to-slate-700/20" style={{ zIndex: 0 }} />
+
+              <div className="space-y-0">
+                {([
+                  { version: '1.3.6', peak: null,        label: 'Pascale push', date: '28 mai 2026',  descKey: 'changelogPascaleDesc' as const, color: '#f97316', elevation: null        },
+                  { version: '1.3',   peak: 'Dom',        label: null,           date: '20 mai 2026',  descKey: 'changelogV13desc'    as const, color: '#22d3ee', elevation: '4 545 m'   },
+                  { version: '1.2',   peak: 'Weisshorn',  label: null,           date: '28 avr. 2026', descKey: 'changelogV12desc'    as const, color: '#a78bfa', elevation: '4 506 m'   },
+                  { version: '1.1',   peak: 'Matterhorn', label: null,           date: '17 avr. 2026', descKey: 'changelogV11desc'    as const, color: '#34d399', elevation: '4 478 m'   },
+                  { version: '1.0',   peak: 'Jungfrau',   label: null,           date: '15 avr. 2026', descKey: 'changelogV10desc'    as const, color: '#94a3b8', elevation: '4 158 m'   },
+                ]).map((entry, i) => (
+                  <div key={entry.version} className="flex gap-5 pb-8 last:pb-0"
+                    style={{ animation: `fadeSlideIn 0.4s ease both`, animationDelay: `${i * 80}ms` }}>
+
+                    {/* Dot — opaque background masks the line behind it */}
+                    <div className="flex-shrink-0 mt-1 rounded-full p-0.5" style={{ background: 'rgba(15,23,42,0.97)', position: 'relative', zIndex: 1 }}>
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-[9px] font-bold"
+                        style={{
+                          background: `${entry.color}18`,
+                          border: `1.5px solid ${entry.color}`,
+                          color: entry.color,
+                          boxShadow: `0 0 10px ${entry.color}35`,
+                        }}
+                      >
+                        {entry.version}
+                      </div>
+                    </div>
+
+                    {/* Card */}
+                    <div className="flex-1 rounded-xl p-4 min-w-0"
+                      style={{ background: 'rgba(30,41,59,0.6)', border: `1px solid ${entry.color}25` }}>
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <div>
+                          <span className="text-sm font-semibold" style={{ color: entry.color }}>
+                            {entry.peak ?? entry.label}
+                          </span>
+                          {entry.elevation && (
+                            <span className="ml-2 text-xs text-slate-500">{entry.elevation}</span>
+                          )}
+                        </div>
+                        <span className="text-xs text-slate-600 whitespace-nowrap flex-shrink-0">{entry.date}</span>
+                      </div>
+                      <p className="text-xs text-slate-400 leading-relaxed">{t(entry.descKey)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <style>{`
+              @keyframes fadeSlideIn {
+                from { opacity: 0; transform: translateX(-10px); }
+                to   { opacity: 1; transform: translateX(0); }
+              }
+            `}</style>
+          </div>
+        )}
 
         {/* Guide tab */}
         {tab === 'guide' && (

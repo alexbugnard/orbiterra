@@ -131,7 +131,7 @@ export function TripViewClient({
               <>
                 <div className="w-px h-8 bg-slate-700" />
                 <div className="text-right">
-                  <div className="text-xl font-bold text-white">↑ {computeElevationGain(trip.elevation).toLocaleString()}</div>
+                  <div className="text-xl font-bold text-white">↑ {computeElevationGain(trip.elevation).toLocaleString('fr-CH')}</div>
                   <div className="text-xs text-slate-500">{t('mGain')}</div>
                 </div>
               </>

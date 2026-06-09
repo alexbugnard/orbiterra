@@ -20,7 +20,7 @@ interface ElevationProfileProps {
 }
 
 const H = 116
-const PAD = { top: 34, right: 8, bottom: 20, left: 36 }
+const PAD = { top: 36, right: 8, bottom: 20, left: 36 }
 
 export function ElevationProfile({ points, hoveredDistance, onHoverDistance, markers = [], gainLabel = 'm gain', riddenUpToM, showStats = true, countries }: ElevationProfileProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -220,29 +220,82 @@ export function ElevationProfile({ points, hoveredDistance, onHoverDistance, mar
           </text>
         ))}
 
-        {/* Event markers */}
+        {/* Event markers — 2-row stagger + per-row force layout, angled leaders */}
         {(() => {
-          const valid = markers
-            .map((m, i) => ({ ...m, i, x: toX(m.distanceM) }))
-            .filter((m) => m.distanceM >= 0 && m.distanceM <= maxDist)
-            .sort((a, b) => a.x - b.x)
+          const CW = 5.6
+          const PX = 6
+          const PH = 13
+          const PR = 3
+          const GAP = 4
+          // Row 0 = short callout (top), Row 1 = long callout (just above chart)
+          const ROW_Y = [3, PAD.top - PH - 3]
 
-          const MIN_GAP = 52
-          const rows: number[] = []
-          for (let k = 0; k < valid.length; k++) {
-            if (k === 0) { rows.push(0); continue }
-            rows.push(valid[k].x - valid[k - 1].x < MIN_GAP ? 1 - rows[k - 1] : 0)
+          const valid = markers
+            .filter(m => m.distanceM >= 0 && m.distanceM <= maxDist)
+            .map((m, i) => ({ ...m, i, ax: toX(m.distanceM), hw: Math.ceil(m.label.length * CW / 2) + PX }))
+            .sort((a, b) => a.ax - b.ax)
+
+          if (valid.length === 0) return null
+
+          const LO = PAD.left
+          const HI = PAD.left + innerW
+
+          // 1. Greedy row assignment by x proximity
+          const rowSlots: { ax: number; hw: number }[][] = [[], []]
+          const rows = valid.map(m => {
+            for (const r of [0, 1]) {
+              if (rowSlots[r].every(p => Math.abs(m.ax - p.ax) >= p.hw + m.hw + GAP)) {
+                rowSlots[r].push(m); return r
+              }
+            }
+            rowSlots[1].push(m); return 1
+          })
+
+          // 2. Per-row force layout: spread pills that still overlap within the same row
+          const rowPos: number[][] = [[], []]
+          for (const r of [0, 1]) {
+            const inRow = valid.filter((_, k) => rows[k] === r)
+            const p = inRow.map(m => Math.max(LO + m.hw, Math.min(HI - m.hw, m.ax)))
+            // Forward pass
+            for (let i = 0; i < p.length - 1; i++) {
+              const need = inRow[i].hw + inRow[i + 1].hw + GAP
+              if (p[i + 1] - p[i] < need) p[i + 1] = p[i] + need
+            }
+            // Clamp right + backward pass
+            if (p.length && p[p.length - 1] > HI - inRow[p.length - 1].hw) {
+              p[p.length - 1] = HI - inRow[p.length - 1].hw
+              for (let i = p.length - 2; i >= 0; i--) {
+                const need = inRow[i].hw + inRow[i + 1].hw + GAP
+                if (p[i + 1] - p[i] < need) p[i] = p[i + 1] - need
+              }
+            }
+            rowPos[r] = p
           }
 
+          // Map valid index → final cx
+          const rowCounts = [0, 0]
+          const finalCx = valid.map((_, k) => {
+            const r = rows[k]
+            return rowPos[r][rowCounts[r]++]
+          })
+
           return valid.map((m, k) => {
-            const row = rows[k]
-            const labelY = row === 0 ? 10 : 22
-            const connectorTop = labelY + 3
+            const r = rows[k]
+            const cx = finalCx[k]
+            const rectY = ROW_Y[r]
             return (
               <g key={m.i}>
-                <text x={m.x} y={labelY} textAnchor="middle" fontSize="9" fontWeight="bold" fill={m.color}>{m.label}</text>
-                <line x1={m.x} y1={connectorTop} x2={m.x} y2={PAD.top} stroke={m.color} strokeWidth="1" opacity="0.5" />
-                <line x1={m.x} y1={PAD.top} x2={m.x} y2={PAD.top + innerH} stroke={m.color} strokeWidth="1" strokeDasharray="3 2" opacity="0.6" />
+                <line x1={m.ax} y1={PAD.top} x2={m.ax} y2={PAD.top + innerH}
+                  stroke={m.color} strokeWidth="1" strokeDasharray="3 2" opacity="0.4" />
+                {/* Leader: pill bottom → chart top at actual ax */}
+                <line x1={cx} y1={rectY + PH} x2={m.ax} y2={PAD.top}
+                  stroke={m.color} strokeWidth="0.9" opacity="0.5" />
+                <circle cx={m.ax} cy={PAD.top} r="2.5" fill={m.color} opacity="0.8" />
+                <rect x={cx - m.hw} y={rectY} width={m.hw * 2} height={PH} rx={PR}
+                  fill="rgba(15,23,42,0.92)" stroke={m.color} strokeWidth="0.8" />
+                <text x={cx} y={rectY + PH - 3} textAnchor="middle" fontSize="9" fontWeight="bold" fill={m.color}>
+                  {m.label}
+                </text>
               </g>
             )
           })
@@ -268,6 +321,7 @@ export function ElevationProfile({ points, hoveredDistance, onHoverDistance, mar
           )
         })()}
       </svg>
+
     </div>
   )
 }
