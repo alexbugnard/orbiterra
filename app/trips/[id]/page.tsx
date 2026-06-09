@@ -43,7 +43,7 @@ export default async function TripPage({ params }: { params: Promise<{ id: strin
 
   const { data: waypoints } = await supabase
     .from('waypoints')
-    .select('id, lat, lng, url_large, title')
+    .select('id, lat, lng, url_large, title, trip_id')
     .eq('trip_id', id)
 
   const journal = locale === 'fr' ? trip.journal_fr : trip.journal_en
@@ -56,6 +56,7 @@ export default async function TripPage({ params }: { params: Promise<{ id: strin
     id: trip.id,
     name: trip.name,
     start_date: trip.start_date,
+    end_date: (trip.end_date ?? null) as string | null,
     distance_m: trip.distance_m,
     journal_fr: trip.journal_fr,
     journal_en: trip.journal_en,

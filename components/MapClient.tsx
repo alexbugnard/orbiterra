@@ -21,6 +21,7 @@ interface Trip {
   id: string
   name: string
   start_date: string
+  end_date: string | null
   distance_m: number
   journal_fr: string | null
   journal_en: string | null
@@ -44,6 +45,7 @@ interface Waypoint {
   lng: number
   url_large: string
   title: string | null
+  trip_id: string | null
 }
 
 interface PlannedRoute {
