@@ -30,9 +30,9 @@ function windAnimDuration(speed: number): number {
   return 0.5
 }
 
-function buildIconHtml(point: WeatherPointResponse, theme: 'dark' | 'topo' = 'dark'): string {
+function buildIconHtml(point: WeatherPointResponse, theme: 'dark' | 'topo' | 'light' = 'dark'): string {
   const emoji = point.icon ? (ICON_EMOJI[point.icon] ?? '☁️') : '☁️'
-  const bg = theme === 'topo' ? 'rgba(255,255,255,0.95)' : 'rgba(15,23,42,0.88)'
+  const bg = theme !== 'dark' ? 'rgba(255,255,255,0.95)' : 'rgba(15,23,42,0.88)'
   const border = theme === 'topo' ? '1px solid rgba(30,41,59,0.35)' : '1px solid rgba(34,211,238,0.4)'
   const shadow = theme === 'topo' ? '0 2px 6px rgba(0,0,0,0.25)' : '0 2px 6px rgba(0,0,0,0.5)'
   const circle = `<div style="font-size:18px;line-height:1;background:${bg};border:${border};border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;box-shadow:${shadow};cursor:default;">${emoji}</div>`
@@ -98,7 +98,7 @@ export class WeatherLayer {
   private markers: Marker[] = []
   private points: WeatherPointResponse[] = []
   private loaded = false
-  private theme: 'dark' | 'topo' = 'dark'
+  private theme: 'dark' | 'topo' | 'light' = 'dark'
 
   async addTo(map: LeafletMap): Promise<void> {
     const L = (await import('leaflet')).default
@@ -169,7 +169,7 @@ export class WeatherLayer {
     map.off('zoomend')
   }
 
-  async restyle(theme: 'dark' | 'topo'): Promise<void> {
+  async restyle(theme: 'dark' | 'topo' | 'light'): Promise<void> {
     this.theme = theme
     if (!this.loaded) return
     const L = (await import('leaflet')).default
