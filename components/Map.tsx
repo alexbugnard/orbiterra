@@ -1491,7 +1491,9 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
     if (!map || !L) return
 
     function updateContours() {
-      const zoom = map.getZoom()
+      const m = mapRef.current
+      if (!m) return
+      const zoom = m.getZoom()
 
       if (basemap === 'topo' || zoom < CONTOUR_ZOOM) {
         contourLayerRef.current?.remove()
@@ -1500,22 +1502,21 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       }
 
       if (contourLayerRef.current) {
-        // Re-apply style in case basemap changed without zoom change
-        const paneEl = map.getPane('contourPane') as HTMLElement | undefined
+        const paneEl = m.getPane('contourPane') as HTMLElement | undefined
         if (paneEl) applyPaneStyle(paneEl)
         return
       }
 
-      if (!map.getPane('contourPane')) {
-        map.createPane('contourPane').style.zIndex = '201'
+      if (!m.getPane('contourPane')) {
+        m.createPane('contourPane').style.zIndex = '201'
       }
-      const paneEl = map.getPane('contourPane') as HTMLElement
+      const paneEl = m.getPane('contourPane') as HTMLElement
       applyPaneStyle(paneEl)
 
       contourLayerRef.current = L.tileLayer(
         'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
         { attribution: '© OpenTopoMap', maxZoom: 17, pane: 'contourPane', subdomains: 'abc' }
-      ).addTo(map)
+      ).addTo(m)
     }
 
     function applyPaneStyle(el: HTMLElement) {
