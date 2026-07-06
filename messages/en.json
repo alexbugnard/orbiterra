@@ -122,7 +122,8 @@
     "changelogV11desc": "Interactive elevation profile with hover sync, Open-Meteo weather layer along planned route, Alaska-Ushuaia planned route overlay, Strava activity photos synced to map, full mobile redesign (bottom sheet panel), stats (elevation gain, countries crossed), OrbiTerra rebrand, crons merged into single daily job.",
     "changelogV12desc": "Max speed, max altitude and break callout markers with leader lines on map. Animated globe on landing page, Vincent live position marker. Cities and POIs (mountains, passes, lakes) with Wikipedia panels (200+ entries). YouTube video of the day per trip (automatic date matching) with hover preview and fullscreen modal. Charmey Sports and Molechaux sponsors. 3-line expandable journal.",
     "changelogV13desc": "Media tab (photo+video gallery with lightbox, /api/gallery endpoint). Vincent's text in About, coffee donation link. New landing page composition, bicycle favicon. Polar circles, sunrise/sunset clock. Bike setup tab (Fairlight + full kit with links). Geo tools: draggable Switzerland true-size overlay, distance measure, timezone layer, animated day/night overlay. Strava comments sync (last 30 days) shown in trip side panel.",
-    "changelogPascaleDesc": "StatHunter modal with per-trip stats (speed, elevation, distance). Mobile carousel in About modal. Strava description sync to trip journal. Tent, saddle and lighting in bike setup tab. Lusty sponsor."
+    "changelogPascaleDesc": "StatHunter modal with per-trip stats (speed, elevation, distance). Mobile carousel in About modal. Strava description sync to trip journal. Tent, saddle and lighting in bike setup tab. Lusty sponsor.",
+    "changelogV153desc": "Position marker now shows the last recorded GPS point. Rider name editable from admin. Break threshold raised to 30 minutes. Strava video detection."
   },
   "bikeSetup": {
     "viewProduct": "View product",

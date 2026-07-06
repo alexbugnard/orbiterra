@@ -99,6 +99,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
 
               <div className="space-y-0">
                 {([
+                  { version: '1.5.3', peak: null,        label: null,           date: '6 juil. 2026', descKey: 'changelogV153desc'    as const, color: '#f97316', elevation: null        },
                   { version: '1.3.6', peak: null,        label: 'Pascale push', date: '28 mai 2026',  descKey: 'changelogPascaleDesc' as const, color: '#f97316', elevation: null        },
                   { version: '1.3',   peak: 'Dom',        label: null,           date: '20 mai 2026',  descKey: 'changelogV13desc'    as const, color: '#22d3ee', elevation: '4 545 m'   },
                   { version: '1.2',   peak: 'Weisshorn',  label: null,           date: '28 avr. 2026', descKey: 'changelogV12desc'    as const, color: '#a78bfa', elevation: '4 506 m'   },
