@@ -188,7 +188,7 @@ export interface TripBreak {
   distance_m: number
 }
 
-export function detectBreaks(streams: StravaStreams, minGapSeconds = 600): TripBreak[] {
+export function detectBreaks(streams: StravaStreams, minGapSeconds = 1800): TripBreak[] {
   const { time, latlng, distance } = streams
   const breaks: TripBreak[] = []
   for (let i = 1; i < time.length; i++) {
@@ -210,6 +210,7 @@ export interface StravaPhoto {
   urls: Record<string, string>
   caption: string | null
   location: [number, number] | null // [lat, lng]
+  media_type: number // 1 = photo, 2 = video
 }
 
 export async function fetchStravaPhotos(
@@ -232,6 +233,7 @@ export async function fetchStravaPhotos(
       urls: p.urls ?? {},
       caption: p.caption ?? null,
       location: Array.isArray(p.location) && p.location.length === 2 ? p.location : null,
+      media_type: p.media_type ?? 1,
     }))
 }
 

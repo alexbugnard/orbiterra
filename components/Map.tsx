@@ -111,6 +111,7 @@ interface MapProps {
   vincentLat?: number | null
   vincentLng?: number | null
   vincentLastDate?: string | null
+  riderLabel?: string | null
   routeCities?: RouteCity[]
   routePois?: RoutePoi[]
 }
@@ -315,9 +316,9 @@ function computeRiddenDistM(coords: [number, number][], mask: boolean[]): number
 
 // ──────────────────────────────────────────────────────────────────────────────
 
-export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalHover, stats, currentTz, vincentLat, vincentLng, vincentLastDate, routeCities = [], routePois = [] }: MapProps) {
+export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalHover, stats, currentTz, vincentLat, vincentLng, vincentLastDate, riderLabel, routeCities = [], routePois = [] }: MapProps) {
   const t = useTranslations('map')
-  const vincentMarkerLabel = t('vincentMarkerLabel')
+  const vincentMarkerLabel = riderLabel ? `📍 ${riderLabel}` : t('vincentMarkerLabel')
   const vincentLastSeenLabel = t('vincentLastSeen')
   const isMobile = useIsMobile()
   const mapRef = useRef<LeafletMap | null>(null)
@@ -353,7 +354,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
   const [selectedTripIndex, setSelectedTripIndex] = useState<number | null>(null)
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null)
   const [mapVideoModal, setMapVideoModal] = useState<string | null>(null)
-  const [tripPhotoLightbox, setLightboxPhoto] = useState<string | null>(null)
+  const [tripPhotoLightbox, setLightboxPhoto] = useState<{ url: string; isVideo: boolean } | null>(null)
   const [hoveredDistance, setHoveredDistance] = useState<number | null>(null)
   const [journalExpanded, setJournalExpanded] = useState(false)
   const [commentsOpen, setCommentsOpen] = useState(false)
@@ -2504,15 +2505,29 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
                 return (
                   <div className="pt-2 border-t border-slate-700/50">
                     <div className="grid grid-cols-2 gap-1.5">
-                      {tripPhotos.map(w => (
-                        <img
-                          key={w.id}
-                          src={w.url_large}
-                          alt={w.title ?? ''}
-                          className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => setLightboxPhoto(w.url_large)}
-                        />
-                      ))}
+                      {tripPhotos.map(w => {
+                        const isVid = w.flickr_id?.startsWith('strava_video_')
+                        return (
+                          <div
+                            key={w.id}
+                            className="relative w-full aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setLightboxPhoto({ url: w.url_large, isVideo: !!isVid })}
+                          >
+                            {isVid ? (
+                              <>
+                                <video src={w.url_large} className="w-full h-full object-cover" muted playsInline />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                  <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                    <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5 ml-0.5"><path d="M8 5v14l11-7z"/></svg>
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <img src={w.url_large} alt={w.title ?? ''} className="w-full h-full object-cover" />
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )
@@ -3238,12 +3253,22 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/92"
           onClick={() => setLightboxPhoto(null)}
         >
-          <img
-            src={tripPhotoLightbox}
-            alt=""
-            className="max-w-full max-h-full rounded-xl shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          />
+          {tripPhotoLightbox.isVideo ? (
+            <video
+              src={tripPhotoLightbox.url}
+              className="max-w-full max-h-full rounded-xl shadow-2xl"
+              controls
+              autoPlay
+              onClick={e => e.stopPropagation()}
+            />
+          ) : (
+            <img
+              src={tripPhotoLightbox.url}
+              alt=""
+              className="max-w-full max-h-full rounded-xl shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            />
+          )}
           <button
             onClick={() => setLightboxPhoto(null)}
             className="absolute top-4 right-4 text-white/80 hover:text-white"

@@ -113,13 +113,14 @@ export async function runStravaSync(): Promise<{ upserted: number; fetched: numb
         if (!photo.location) continue // skip photos without GPS
         const url = photo.urls['2048'] ?? photo.urls[Object.keys(photo.urls)[0]]
         if (!url) continue
+        const isVideo = photo.media_type === 2
         await supabase.from('waypoints').upsert({
           trip_id: tripRow.id,
           lat: photo.location[0],
           lng: photo.location[1],
           url_large: url,
           title: photo.caption,
-          flickr_id: `strava_${photo.unique_id}`,
+          flickr_id: isVideo ? `strava_video_${photo.unique_id}` : `strava_${photo.unique_id}`,
           taken_at: activity.start_date, // required not-null field; use activity date as fallback
         }, { onConflict: 'flickr_id' })
       }

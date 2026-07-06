@@ -7,6 +7,7 @@ export function SiteContentEditor({ content }: { content: Record<string, string>
   const [descFr, setDescFr] = useState(content.description_fr ?? '')
   const [descEn, setDescEn] = useState(content.description_en ?? '')
   const [heroUrl, setHeroUrl] = useState(content.hero_image_url ?? '')
+  const [riderLabel, setRiderLabel] = useState(content.rider_label ?? 'Vincent')
   const [punctures, setPunctures] = useState(parseInt(content.punctures ?? '0', 10))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -25,6 +26,7 @@ export function SiteContentEditor({ content }: { content: Record<string, string>
           description_en: descEn,
           hero_image_url: heroUrl,
           punctures: String(Math.max(0, punctures)),
+          rider_label: riderLabel,
         }),
       })
       if (!res.ok) throw new Error('Save failed')
@@ -73,6 +75,16 @@ export function SiteContentEditor({ content }: { content: Record<string, string>
           placeholder="https://..."
           className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
         />
+      </div>
+      <div>
+        <label className="text-sm font-medium text-slate-300 block mb-1">Nom affiché sur la carte 📍</label>
+        <input
+          value={riderLabel}
+          onChange={(e) => setRiderLabel(e.target.value)}
+          placeholder="Vincent"
+          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+        />
+        <p className="text-xs text-slate-500 mt-1">Affiché au-dessus du marqueur &quot;Dernière position connue&quot;. Ex: Vincent, Yann et Jojo</p>
       </div>
       <div>
         <label className="text-sm font-medium text-slate-300 block mb-1">Crevaisons 🔧</label>

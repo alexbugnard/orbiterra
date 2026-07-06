@@ -117,10 +117,11 @@ interface MapClientProps {
   vincentLat?: number | null
   vincentLng?: number | null
   vincentLastDate?: string | null
+  riderLabel?: string | null
   routeCities?: RouteCity[]
   routePois?: RoutePoi[]
 }
 
-export function MapClient({ trips, waypoints, plannedRoutes, videos, locale, externalHover, stats, currentTz, vincentLat, vincentLng, vincentLastDate, routeCities, routePois }: MapClientProps) {
-  return <Map trips={trips} waypoints={waypoints} plannedRoutes={plannedRoutes} videos={videos} locale={locale} externalHover={externalHover} stats={stats} currentTz={currentTz} vincentLat={vincentLat} vincentLng={vincentLng} vincentLastDate={vincentLastDate} routeCities={routeCities ?? []} routePois={routePois ?? []} />
+export function MapClient({ trips, waypoints, plannedRoutes, videos, locale, externalHover, stats, currentTz, vincentLat, vincentLng, vincentLastDate, riderLabel, routeCities, routePois }: MapClientProps) {
+  return <Map trips={trips} waypoints={waypoints} plannedRoutes={plannedRoutes} videos={videos} locale={locale} externalHover={externalHover} stats={stats} currentTz={currentTz} vincentLat={vincentLat} vincentLng={vincentLng} vincentLastDate={vincentLastDate} riderLabel={riderLabel} routeCities={routeCities ?? []} routePois={routePois ?? []} />
 }

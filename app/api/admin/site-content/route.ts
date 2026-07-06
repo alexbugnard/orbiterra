@@ -7,7 +7,7 @@ export async function PATCH(request: Request) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body: Record<string, string> = await request.json()
-  const allowedKeys = ['title', 'description_fr', 'description_en', 'hero_image_url', 'punctures']
+  const allowedKeys = ['title', 'description_fr', 'description_en', 'hero_image_url', 'punctures', 'rider_label']
 
   const supabase = createSupabaseClient()
 

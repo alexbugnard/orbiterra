@@ -77,7 +77,7 @@ function plannedRouteKm(coords: [number, number][]): number {
 async function getMapData() {
   const supabase = createSupabaseClient()
 
-  const [{ data: trips }, { data: waypoints }, { data: plannedRoutes }, { data: videos }, { data: routeCities }, { data: routePois }] = await Promise.all([
+  const [{ data: trips }, { data: waypoints }, { data: plannedRoutes }, { data: videos }, { data: routeCities }, { data: routePois }, { data: siteContent }] = await Promise.all([
     supabase
       .from('trips')
       .select('id, name, start_date, end_date, distance_m, coordinates, journal_fr, journal_en, start_lat, start_lng, elevation, country, max_speed_ms, elev_high, breaks, max_speed_lat, max_speed_lng, elev_high_lat, elev_high_lng, comments')
@@ -101,6 +101,10 @@ async function getMapData() {
       .from('route_pois')
       .select('id, name, country, lat, lng, wiki_slug, type')
       .order('name', { ascending: true }),
+    supabase
+      .from('site_content')
+      .select('key, value')
+      .eq('key', 'rider_label'),
   ])
 
   const formattedVideos = (videos ?? []).map((v: any) => ({
@@ -174,6 +178,7 @@ async function getMapData() {
     videos: formattedVideos,
     routeCities: filteredCities as { id: string; name: string; country: string; lat: number; lng: number; wiki_slug: string }[],
     routePois: filteredPois as { id: string; name: string; country: string; lat: number; lng: number; wiki_slug: string; type: 'mountain' | 'pass' | 'lake' }[],
+    siteContent: siteContent ?? [],
   }
 }
 
@@ -194,7 +199,7 @@ function computeAmericasProgress(
 }
 
 export default async function MapPage() {
-  const { trips, waypoints, plannedRoutes, videos, routeCities, routePois } = await getMapData()
+  const { trips, waypoints, plannedRoutes, videos, routeCities, routePois, siteContent } = await getMapData()
   const locale = await getLocale()
   const t = await getTranslations('map')
 
@@ -227,23 +232,25 @@ export default async function MapPage() {
     },
   } : null
 
-  // Timezone + live position at Vincent's current position (last ridden point on planned route)
+  // Timezone + live position at the end of the last recorded ride
   let currentTz: string | null = null
   let vincentLat: number | null = null
   let vincentLng: number | null = null
-  if (mainPlannedRoute && mainCutoff > 0) {
-    const [lng, lat] = mainPlannedRoute.coordinates[mainCutoff]
+  const lastTrip = trips[trips.length - 1] ?? null
+  const vincentLastDate: string | null = lastTrip?.start_date ?? null
+  if (lastTrip && lastTrip.coordinates.length > 0) {
+    const [lng, lat] = lastTrip.coordinates[lastTrip.coordinates.length - 1]
     vincentLat = lat
     vincentLng = lng
     try { currentTz = tzlookup(lat, lng) } catch {}
   }
-  const lastTrip = trips[trips.length - 1] ?? null
-  const vincentLastDate: string | null = lastTrip?.start_date ?? null
+
+  const riderLabel = (siteContent ?? []).find((r: any) => r.key === 'rider_label')?.value ?? null
 
   return (
     <div className="relative h-[calc(100vh-57px)]">
       <SyncTrigger />
-      <MapClient trips={trips} waypoints={waypoints} plannedRoutes={plannedRoutes} videos={videos} locale={locale} stats={stats} currentTz={currentTz} vincentLat={vincentLat} vincentLng={vincentLng} vincentLastDate={vincentLastDate} routeCities={routeCities ?? []} routePois={routePois ?? []} />
+      <MapClient trips={trips} waypoints={waypoints} plannedRoutes={plannedRoutes} videos={videos} locale={locale} stats={stats} currentTz={currentTz} vincentLat={vincentLat} vincentLng={vincentLng} vincentLastDate={vincentLastDate} riderLabel={riderLabel} routeCities={routeCities ?? []} routePois={routePois ?? []} />
     </div>
   )
 }
