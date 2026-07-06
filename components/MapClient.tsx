@@ -46,6 +46,7 @@ interface Waypoint {
   url_large: string
   title: string | null
   trip_id: string | null
+  flickr_id?: string | null
 }
 
 interface PlannedRoute {

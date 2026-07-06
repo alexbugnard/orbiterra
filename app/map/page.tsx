@@ -85,7 +85,7 @@ async function getMapData() {
       .order('start_date', { ascending: true }),
     supabase
       .from('waypoints')
-      .select('id, lat, lng, url_large, title, trip_id'),
+      .select('id, lat, lng, url_large, title, trip_id, flickr_id'),
     supabase
       .from('planned_routes')
       .select('id, name, coordinates, color, elevation, countries'),
