@@ -25,7 +25,8 @@ async function handler() {
   }
 
   try {
-    const result = await runStravaSync()
+    const fourDaysAgo = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
+    const result = await runStravaSync(fourDaysAgo)
     return NextResponse.json({ synced: true, ...result })
   } catch (err) {
     console.error('Auto-sync error:', err)

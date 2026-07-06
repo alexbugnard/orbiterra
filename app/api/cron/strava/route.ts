@@ -23,7 +23,7 @@ export function verifyCronSecret(headers: Headers): boolean {
   }
 }
 
-export async function runStravaSync(): Promise<{ upserted: number; fetched: number; since: string }> {
+export async function runStravaSync(forceSince?: Date): Promise<{ upserted: number; fetched: number; since: string }> {
   const supabase = createSupabaseClient()
 
   const { data: tokenRow, error: tokenError } = await supabase
@@ -52,7 +52,7 @@ export async function runStravaSync(): Promise<{ upserted: number; fetched: numb
   // - If never synced (last_synced_at is null or before SYNC_EPOCH), start from SYNC_EPOCH
   // - Otherwise, start from last_synced_at to only fetch new activities
   const lastSynced = tokenRow.last_synced_at ? new Date(tokenRow.last_synced_at) : null
-  const since = (!lastSynced || lastSynced < SYNC_EPOCH) ? SYNC_EPOCH : lastSynced
+  const since = forceSince ?? ((!lastSynced || lastSynced < SYNC_EPOCH) ? SYNC_EPOCH : lastSynced)
 
   const activities = await fetchStravaActivitiesSince(accessToken, since)
 
