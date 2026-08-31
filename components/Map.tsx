@@ -1464,21 +1464,27 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
     if (!map || !L || !tileLayerRef.current) return
     tileLayerRef.current.remove()
     if (basemap === 'topo') {
+      const pane = map.getPane('tilePane') as HTMLElement | undefined
+      if (pane) pane.style.filter = ''
       tileLayerRef.current = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
         attribution: '© <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
         maxZoom: 17,
       }).addTo(map)
     } else if (basemap === 'light') {
-      tileLayerRef.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 20,
+      const pane = map.getPane('tilePane') as HTMLElement | undefined
+      if (pane) pane.style.filter = ''
+      tileLayerRef.current = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        subdomains: 'abc',
+        maxZoom: 19,
       }).addTo(map)
     } else {
-      tileLayerRef.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 20,
+      const pane = map.getPane('tilePane') as HTMLElement | undefined
+      if (pane) pane.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.6)'
+      tileLayerRef.current = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        subdomains: 'abc',
+        maxZoom: 19,
       }).addTo(map)
     }
   }, [basemap])
@@ -1883,10 +1889,11 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
         preferCanvas: true,
       }).setView([46.2276, 2.2137], 6)
 
-      tileLayerRef.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 20,
+      map.getPane('tilePane')!.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.6)'
+      tileLayerRef.current = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        subdomains: 'abc',
+        maxZoom: 19,
       }).addTo(map)
 
       mapRef.current = map
