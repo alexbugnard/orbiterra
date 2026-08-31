@@ -116,6 +116,7 @@ interface MapProps {
   riderLabel?: string | null
   routeCities?: RouteCity[]
   routePois?: RoutePoi[]
+  transfers?: Transfer[]
 }
 
 interface RouteCity {
@@ -135,6 +136,18 @@ interface RoutePoi {
   lng: number
   wiki_slug: string
   type: 'mountain' | 'pass' | 'lake'
+}
+
+interface Transfer {
+  id: string
+  mode: 'boat' | 'plane'
+  label: string
+  from_lat: number
+  from_lng: number
+  to_lat: number
+  to_lng: number
+  start_date: string
+  end_date: string | null
 }
 
 interface WikiTarget {
@@ -318,7 +331,7 @@ function computeRiddenDistM(coords: [number, number][], mask: boolean[]): number
 
 // ──────────────────────────────────────────────────────────────────────────────
 
-export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalHover, stats, currentTz, vincentLat, vincentLng, vincentLastDate, riderLabel, routeCities = [], routePois = [] }: MapProps) {
+export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalHover, stats, currentTz, vincentLat, vincentLng, vincentLastDate, riderLabel, routeCities = [], routePois = [], transfers = [] }: MapProps) {
   const t = useTranslations('map')
   const vincentMarkerLabel = riderLabel ? `📍 ${riderLabel}` : t('vincentMarkerLabel')
   const vincentLastSeenLabel = t('vincentLastSeen')
@@ -351,6 +364,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
   }, [])
   const tileLayerRef = useRef<any>(null)
   const plannedLinesRef = useRef<{ segLines: { line: any; ridden: boolean }[]; routeColor: string }[]>([])
+  const transferLayersRef = useRef<any[]>([])
   const breakMarkersRef = useRef<any[]>([])
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null)
   const [selectedTripIndex, setSelectedTripIndex] = useState<number | null>(null)
@@ -1856,6 +1870,8 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
 
       mapRef.current = map
 
+      map.createPane('transferPane').style.zIndex = '410' // above trip polylines (typically overlayPane ~400), below markerPane (600)
+
       // Polar circles at 66.5634° N/S — span 3 world copies so they're visible when panning
       const POLAR_LAT = 66.5634
       const polarOpts = { color: '#94a3b8', weight: 1, opacity: 0.7, dashArray: '6, 8', interactive: false }
@@ -2033,6 +2049,45 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
           if (selectedRouteIndexRef.current !== routeIdx) return
           setHoveredRouteDistanceRef.current(null)
         })
+      }
+
+      // Boat/plane transfers — great-circle arcs, dashed, colored by mode
+      for (const transfer of transfers) {
+        const arc = geodesicArc([transfer.from_lat, transfer.from_lng], [transfer.to_lat, transfer.to_lng])
+        const color = transfer.mode === 'boat' ? '#38bdf8' : '#a78bfa'
+
+        const line = L.polyline(arc, {
+          color,
+          weight: 3,
+          opacity: 0.85,
+          dashArray: '4, 8',
+          pane: 'transferPane',
+        }).addTo(map)
+
+        const distanceKm = Math.round(haversineM(transfer.from_lat, transfer.from_lng, transfer.to_lat, transfer.to_lng) / 1000)
+        const dateLabel = transfer.end_date && transfer.end_date !== transfer.start_date
+          ? `${toDateStr(transfer.start_date)} → ${toDateStr(transfer.end_date)}`
+          : toDateStr(transfer.start_date)
+
+        line.bindPopup(`
+          <div style="font-size:13px;line-height:1.5">
+            <strong>${transfer.mode === 'boat' ? '⛴️' : '✈️'} ${transfer.label}</strong><br/>
+            ${dateLabel}<br/>
+            ${distanceKm} km
+          </div>
+        `)
+
+        const mid = arc[Math.floor(arc.length / 2)]
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="font-size:16px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6))">${transfer.mode === 'boat' ? '⛴️' : '✈️'}</div>`,
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+        })
+        const marker = L.marker(mid, { icon, pane: 'transferPane' }).addTo(map)
+        marker.bindPopup(line.getPopup()!.getContent() as string)
+
+        transferLayersRef.current.push(line, marker)
       }
 
       // Ensure trip hit zones are above planned route hit zones
@@ -2282,6 +2337,8 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       breakMarkersRef.current = []
       tripEndpointMarkersRef.current.forEach(m => m.remove())
       tripEndpointMarkersRef.current = []
+      transferLayersRef.current.forEach((l) => l.remove())
+      transferLayersRef.current = []
       mapRef.current?.remove()
       mapRef.current = null
       polylinesRef.current = []
