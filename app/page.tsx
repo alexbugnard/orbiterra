@@ -41,7 +41,7 @@ async function getStats() {
   const supabase = createSupabaseClient()
 
   const [{ data: trips }, { data: routes }] = await Promise.all([
-    supabase.from('trips').select('distance_m, coordinates').eq('visible', true),
+    supabase.from('trips').select('distance_m, coordinates, start_date').eq('visible', true),
     supabase.from('planned_routes').select('coordinates').limit(1),
   ])
 
@@ -57,26 +57,21 @@ async function getStats() {
   let riddenCutoff = 0
 
   if (planned && planned.length > 1) {
-    // Grid-based ridden mask (same approach as Map.tsx) — O(trips×coords + planned×9)
-    const CELL = 0.15 // ~16 km cells, coarser than map but fine for progress detection
-    const occupied = new Set<string>()
-    for (const trip of trips ?? []) {
-      const coords = trip.coordinates as [number, number][] | null
-      if (!coords) continue
-      for (const [lng, lat] of coords) {
-        occupied.add(`${Math.floor(lat / CELL)},${Math.floor(lng / CELL)}`)
-      }
-    }
+    // Current latitude reached: last coordinate of the most recently started trip.
+    // Projecting by latitude (rather than nearest-point-on-route) stays accurate even
+    // when Vincent diverts from the planned route — see app/map/page.tsx for the same approach.
+    const sortedTrips = [...(trips ?? [])].sort((a, b) =>
+      (a.start_date as string ?? '').localeCompare(b.start_date as string ?? ''))
+    const lastTrip = sortedTrips[sortedTrips.length - 1]
+    const lastCoords = lastTrip?.coordinates as [number, number][] | null
+    const currentLat = lastCoords && lastCoords.length > 0 ? lastCoords[lastCoords.length - 1][1] : null
 
     let maxIndex = 0
-    for (let pi = 0; pi < planned.length; pi++) {
-      const [pLng, pLat] = planned[pi]
-      const cr = Math.floor(pLat / CELL)
-      const cc = Math.floor(pLng / CELL)
-      for (let dr = -1; dr <= 1; dr++) {
-        for (let dc = -1; dc <= 1; dc++) {
-          if (occupied.has(`${cr + dr},${cc + dc}`)) { maxIndex = pi; break }
-        }
+    if (currentLat !== null) {
+      let bestDiff = Infinity
+      for (let pi = 0; pi < planned.length; pi++) {
+        const diff = Math.abs(planned[pi][1] - currentLat)
+        if (diff < bestDiff) { bestDiff = diff; maxIndex = pi }
       }
     }
 
@@ -85,8 +80,10 @@ async function getStats() {
       const TOTAL_ROUTE_KM = 25000
       const computedTotal = routeKm(planned)
       const doneKm = routeKm(planned.slice(0, maxIndex + 1))
-      const pct = Math.min(100, (doneKm / computedTotal) * 100)
-      progress = { pct: Math.round(pct * 10) / 10, kmLeft: Math.round(TOTAL_ROUTE_KM * (1 - doneKm / computedTotal)), totalKm: TOTAL_ROUTE_KM }
+      const startLat = planned[0][1]
+      const endLat = planned[planned.length - 1][1]
+      const pct = startLat === endLat ? 0 : Math.min(100, Math.max(0, ((startLat - (currentLat as number)) / (startLat - endLat)) * 100))
+      progress = { pct: Math.round(pct * 10) / 10, kmLeft: Math.round(TOTAL_ROUTE_KM * Math.max(0, 1 - doneKm / computedTotal)), totalKm: TOTAL_ROUTE_KM }
     }
 
     // Sample full route to 400 pts for SVG

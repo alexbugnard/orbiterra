@@ -17,39 +17,20 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-// Returns the furthest index along plannedCoords reached by any trip point within 10 km.
-// Scans every Nth planned route point (stride) for performance, then refines around the best match.
-function computeRouteProgress(
-  trips: { coordinates: [number, number][] }[],
+// Returns the index along plannedCoords whose latitude is closest to `lat`.
+// Used to project Vincent's current position onto the planned route when he has
+// diverted from it, so progress tracks latitude advanced rather than proximity to the route.
+function findRouteIndexByLatitude(
+  lat: number,
   plannedCoords: [number, number][]
 ): number {
-  const MAX_DIST_KM = 10
-  let maxIndex = 0
-
-  for (const trip of trips) {
-    for (const [tLng, tLat] of trip.coordinates) {
-      // Coarse scan every 10 points, then refine ±10 around best
-      let bestIdx = -1
-      let bestDist = Infinity
-      for (let i = 0; i < plannedCoords.length; i += 10) {
-        const [pLng, pLat] = plannedCoords[i]
-        const d = haversineKm(tLat, tLng, pLat, pLng)
-        if (d < bestDist) { bestDist = d; bestIdx = i }
-      }
-      if (bestDist > MAX_DIST_KM) continue
-      // Refine
-      const lo = Math.max(0, bestIdx - 10)
-      const hi = Math.min(plannedCoords.length - 1, bestIdx + 10)
-      for (let i = lo; i <= hi; i++) {
-        const [pLng, pLat] = plannedCoords[i]
-        const d = haversineKm(tLat, tLng, pLat, pLng)
-        if (d < bestDist) { bestDist = d; bestIdx = i }
-      }
-      if (bestDist <= MAX_DIST_KM && bestIdx > maxIndex) maxIndex = bestIdx
-    }
+  let bestIdx = 0
+  let bestDiff = Infinity
+  for (let i = 0; i < plannedCoords.length; i++) {
+    const diff = Math.abs(plannedCoords[i][1] - lat)
+    if (diff < bestDiff) { bestDiff = diff; bestIdx = i }
   }
-
-  return maxIndex
+  return bestIdx
 }
 
 function isNearRoute(lat: number, lng: number, coords: [number, number][]): boolean {
@@ -183,17 +164,25 @@ async function getMapData() {
 }
 
 function computeAmericasProgress(
-  cutoffIndex: number,
+  currentLat: number,
   plannedCoords: [number, number][]
 ) {
-  if (plannedCoords.length === 0 || cutoffIndex === 0) return null
+  if (plannedCoords.length === 0) return null
 
-  // Use known total rather than computed GPX length — generalized coords underestimate real distance
+  const startLat = plannedCoords[0][1]
+  const endLat = plannedCoords[plannedCoords.length - 1][1]
+  if (startLat === endLat) return null
+
+  // Latitude progress: robust to Vincent diverting from the planned route (detours, ferries, etc.)
+  const rawPct = ((startLat - currentLat) / (startLat - endLat)) * 100
+  const pct = Math.min(100, Math.max(0, rawPct))
+
+  // Project current latitude onto the planned route to find km remaining along it
+  const cutoffIndex = findRouteIndexByLatitude(currentLat, plannedCoords)
   const TOTAL_ROUTE_KM = 25000
   const computedTotal = plannedRouteKm(plannedCoords)
   const kmDone = plannedRouteKm(plannedCoords.slice(0, cutoffIndex + 1))
-  const pct = Math.min(100, (kmDone / computedTotal) * 100)
-  const kmLeft = Math.round(TOTAL_ROUTE_KM * (1 - kmDone / computedTotal))
+  const kmLeft = Math.round(TOTAL_ROUTE_KM * Math.max(0, 1 - kmDone / computedTotal))
 
   return { pct: Math.round(pct * 10) / 10, kmLeft, totalKm: TOTAL_ROUTE_KM }
 }
@@ -208,11 +197,23 @@ export default async function MapPage() {
     sum + (t.elevation ? computeElevationGain(t.elevation) : 0), 0)
   const countries = [...new Set(trips.map(t => t.country).filter(Boolean))]
 
-  const mainPlannedRoute = plannedRoutes[0] ?? null
-  const mainCutoff = mainPlannedRoute ? computeRouteProgress(trips, mainPlannedRoute.coordinates) : 0
+  // Timezone + live position at the end of the last recorded ride
+  let currentTz: string | null = null
+  let vincentLat: number | null = null
+  let vincentLng: number | null = null
+  const lastTrip = trips[trips.length - 1] ?? null
+  const vincentLastDate: string | null = lastTrip?.start_date ?? null
+  if (lastTrip && lastTrip.coordinates.length > 0) {
+    const [lng, lat] = lastTrip.coordinates[lastTrip.coordinates.length - 1]
+    vincentLat = lat
+    vincentLng = lng
+    try { currentTz = tzlookup(lat, lng) } catch {}
+  }
 
-  const progress = mainPlannedRoute
-    ? computeAmericasProgress(mainCutoff, mainPlannedRoute.coordinates)
+  const mainPlannedRoute = plannedRoutes[0] ?? null
+
+  const progress = mainPlannedRoute && vincentLat !== null
+    ? computeAmericasProgress(vincentLat, mainPlannedRoute.coordinates)
     : null
 
   const stats = trips.length > 0 ? {
@@ -231,19 +232,6 @@ export default async function MapPage() {
       left: t('left'),
     },
   } : null
-
-  // Timezone + live position at the end of the last recorded ride
-  let currentTz: string | null = null
-  let vincentLat: number | null = null
-  let vincentLng: number | null = null
-  const lastTrip = trips[trips.length - 1] ?? null
-  const vincentLastDate: string | null = lastTrip?.start_date ?? null
-  if (lastTrip && lastTrip.coordinates.length > 0) {
-    const [lng, lat] = lastTrip.coordinates[lastTrip.coordinates.length - 1]
-    vincentLat = lat
-    vincentLng = lng
-    try { currentTz = tzlookup(lat, lng) } catch {}
-  }
 
   const riderLabel = (siteContent ?? []).find((r: any) => r.key === 'rider_label')?.value ?? null
 
