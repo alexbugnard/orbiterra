@@ -2052,6 +2052,8 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       }
 
       // Boat/plane transfers — great-circle arcs, dashed, colored by mode
+      const escapeHtml = (s: string) =>
+        s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
       for (const transfer of transfers) {
         const arc = geodesicArc([transfer.from_lat, transfer.from_lng], [transfer.to_lat, transfer.to_lng])
         const color = transfer.mode === 'boat' ? '#38bdf8' : '#a78bfa'
@@ -2071,7 +2073,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
 
         line.bindPopup(`
           <div style="font-size:13px;line-height:1.5">
-            <strong>${transfer.mode === 'boat' ? '⛴️' : '✈️'} ${transfer.label}</strong><br/>
+            <strong>${transfer.mode === 'boat' ? '⛴️' : '✈️'} ${escapeHtml(transfer.label)}</strong><br/>
             ${dateLabel}<br/>
             ${distanceKm} km
           </div>
