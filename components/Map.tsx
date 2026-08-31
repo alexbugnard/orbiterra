@@ -2070,14 +2070,22 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
         const dateLabel = transfer.end_date && transfer.end_date !== transfer.start_date
           ? `${toDateStr(transfer.start_date)} → ${toDateStr(transfer.end_date)}`
           : toDateStr(transfer.start_date)
+        const modeLabel = transfer.mode === 'boat' ? 'Boat' : 'Plane'
 
         line.bindPopup(`
-          <div style="font-size:13px;line-height:1.5">
-            <strong>${transfer.mode === 'boat' ? '⛴️' : '✈️'} ${escapeHtml(transfer.label)}</strong><br/>
-            ${dateLabel}<br/>
-            ${distanceKm} km
+          <div style="font-family:sans-serif;min-width:180px;padding:12px 14px">
+            <div style="font-size:10px;color:${color};font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">
+              ${transfer.mode === 'boat' ? '⛴️' : '✈️'} ${modeLabel} transfer
+            </div>
+            <div style="font-size:14px;font-weight:700;color:#f8fafc;line-height:1.3;margin-bottom:10px">
+              ${escapeHtml(transfer.label)}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;padding-top:8px;border-top:1px solid rgba(148,163,184,0.2)">
+              <div style="font-size:11px;color:#94a3b8">📅 ${dateLabel}</div>
+              <div style="font-size:11px;color:#94a3b8">📏 ${distanceKm} km</div>
+            </div>
           </div>
-        `)
+        `, { maxWidth: 240 })
 
         const mid = arc[Math.floor(arc.length / 2)]
         const icon = L.divIcon({
@@ -2087,7 +2095,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
           iconAnchor: [10, 10],
         })
         const marker = L.marker(mid, { icon, pane: 'transferPane' }).addTo(map)
-        marker.bindPopup(line.getPopup()!.getContent() as string)
+        marker.bindPopup(line.getPopup()!.getContent() as string, { maxWidth: 240 })
 
         transferLayersRef.current.push(line, marker)
       }
