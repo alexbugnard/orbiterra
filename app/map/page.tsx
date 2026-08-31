@@ -58,7 +58,7 @@ function plannedRouteKm(coords: [number, number][]): number {
 async function getMapData() {
   const supabase = createSupabaseClient()
 
-  const [{ data: trips }, { data: waypoints }, { data: plannedRoutes }, { data: videos }, { data: routeCities }, { data: routePois }, { data: siteContent }] = await Promise.all([
+  const [{ data: trips }, { data: waypoints }, { data: plannedRoutes }, { data: videos }, { data: routeCities }, { data: routePois }, { data: siteContent }, { data: transfers }] = await Promise.all([
     supabase
       .from('trips')
       .select('id, name, start_date, end_date, distance_m, coordinates, journal_fr, journal_en, start_lat, start_lng, elevation, country, max_speed_ms, elev_high, breaks, max_speed_lat, max_speed_lng, elev_high_lat, elev_high_lng, comments')
@@ -86,6 +86,10 @@ async function getMapData() {
       .from('site_content')
       .select('key, value')
       .eq('key', 'rider_label'),
+    supabase
+      .from('transfers')
+      .select('id, mode, label, from_lat, from_lng, to_lat, to_lng, start_date, end_date')
+      .order('start_date', { ascending: true }),
   ])
 
   const formattedVideos = (videos ?? []).map((v: any) => ({
@@ -160,6 +164,7 @@ async function getMapData() {
     routeCities: filteredCities as { id: string; name: string; country: string; lat: number; lng: number; wiki_slug: string }[],
     routePois: filteredPois as { id: string; name: string; country: string; lat: number; lng: number; wiki_slug: string; type: 'mountain' | 'pass' | 'lake' }[],
     siteContent: siteContent ?? [],
+    transfers: (transfers ?? []) as { id: string; mode: 'boat' | 'plane'; label: string; from_lat: number; from_lng: number; to_lat: number; to_lng: number; start_date: string; end_date: string | null }[],
   }
 }
 
@@ -188,7 +193,7 @@ function computeAmericasProgress(
 }
 
 export default async function MapPage() {
-  const { trips, waypoints, plannedRoutes, videos, routeCities, routePois, siteContent } = await getMapData()
+  const { trips, waypoints, plannedRoutes, videos, routeCities, routePois, siteContent, transfers } = await getMapData()
   const locale = await getLocale()
   const t = await getTranslations('map')
 
@@ -238,7 +243,7 @@ export default async function MapPage() {
   return (
     <div className="relative h-[calc(100vh-57px)]">
       <SyncTrigger />
-      <MapClient trips={trips} waypoints={waypoints} plannedRoutes={plannedRoutes} videos={videos} locale={locale} stats={stats} currentTz={currentTz} vincentLat={vincentLat} vincentLng={vincentLng} vincentLastDate={vincentLastDate} riderLabel={riderLabel} routeCities={routeCities ?? []} routePois={routePois ?? []} />
+      <MapClient trips={trips} waypoints={waypoints} plannedRoutes={plannedRoutes} videos={videos} locale={locale} stats={stats} currentTz={currentTz} vincentLat={vincentLat} vincentLng={vincentLng} vincentLastDate={vincentLastDate} riderLabel={riderLabel} routeCities={routeCities ?? []} routePois={routePois ?? []} transfers={transfers} />
     </div>
   )
 }

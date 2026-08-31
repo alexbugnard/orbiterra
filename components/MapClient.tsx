@@ -106,6 +106,18 @@ interface RoutePoi {
   type: 'mountain' | 'pass' | 'lake'
 }
 
+interface Transfer {
+  id: string
+  mode: 'boat' | 'plane'
+  label: string
+  from_lat: number
+  from_lng: number
+  to_lat: number
+  to_lng: number
+  start_date: string
+  end_date: string | null
+}
+
 interface MapClientProps {
   trips: Trip[]
   waypoints: Waypoint[]
@@ -121,8 +133,9 @@ interface MapClientProps {
   riderLabel?: string | null
   routeCities?: RouteCity[]
   routePois?: RoutePoi[]
+  transfers?: Transfer[]
 }
 
-export function MapClient({ trips, waypoints, plannedRoutes, videos, locale, externalHover, stats, currentTz, vincentLat, vincentLng, vincentLastDate, riderLabel, routeCities, routePois }: MapClientProps) {
-  return <Map trips={trips} waypoints={waypoints} plannedRoutes={plannedRoutes} videos={videos} locale={locale} externalHover={externalHover} stats={stats} currentTz={currentTz} vincentLat={vincentLat} vincentLng={vincentLng} vincentLastDate={vincentLastDate} riderLabel={riderLabel} routeCities={routeCities ?? []} routePois={routePois ?? []} />
+export function MapClient({ trips, waypoints, plannedRoutes, videos, locale, externalHover, stats, currentTz, vincentLat, vincentLng, vincentLastDate, riderLabel, routeCities, routePois, transfers }: MapClientProps) {
+  return <Map trips={trips} waypoints={waypoints} plannedRoutes={plannedRoutes} videos={videos} locale={locale} externalHover={externalHover} stats={stats} currentTz={currentTz} vincentLat={vincentLat} vincentLng={vincentLng} vincentLastDate={vincentLastDate} riderLabel={riderLabel} routeCities={routeCities ?? []} routePois={routePois ?? []} transfers={transfers ?? []} />
 }

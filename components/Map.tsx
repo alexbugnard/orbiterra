@@ -26,6 +26,7 @@ import { PhotoModal } from './PhotoModal'
 import { ElevationProfile } from './ElevationProfile'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { computeElevationGain } from '@/lib/strava'
+import { geodesicArc, geodesicPath } from '@/lib/geo'
 import { WeatherLayer } from './WeatherLayer'
 import { SponsorBanner } from './SponsorBanner'
 import { LocalTime } from './LocalTime'
@@ -115,6 +116,7 @@ interface MapProps {
   riderLabel?: string | null
   routeCities?: RouteCity[]
   routePois?: RoutePoi[]
+  transfers?: Transfer[]
 }
 
 interface RouteCity {
@@ -134,6 +136,18 @@ interface RoutePoi {
   lng: number
   wiki_slug: string
   type: 'mountain' | 'pass' | 'lake'
+}
+
+interface Transfer {
+  id: string
+  mode: 'boat' | 'plane'
+  label: string
+  from_lat: number
+  from_lng: number
+  to_lat: number
+  to_lng: number
+  start_date: string
+  end_date: string | null
 }
 
 interface WikiTarget {
@@ -317,7 +331,7 @@ function computeRiddenDistM(coords: [number, number][], mask: boolean[]): number
 
 // ──────────────────────────────────────────────────────────────────────────────
 
-export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalHover, stats, currentTz, vincentLat, vincentLng, vincentLastDate, riderLabel, routeCities = [], routePois = [] }: MapProps) {
+export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalHover, stats, currentTz, vincentLat, vincentLng, vincentLastDate, riderLabel, routeCities = [], routePois = [], transfers = [] }: MapProps) {
   const t = useTranslations('map')
   const vincentMarkerLabel = riderLabel ? `📍 ${riderLabel}` : t('vincentMarkerLabel')
   const vincentLastSeenLabel = t('vincentLastSeen')
@@ -350,6 +364,7 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
   }, [])
   const tileLayerRef = useRef<any>(null)
   const plannedLinesRef = useRef<{ segLines: { line: any; ridden: boolean }[]; routeColor: string }[]>([])
+  const transferLayersRef = useRef<any[]>([])
   const breakMarkersRef = useRef<any[]>([])
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null)
   const [selectedTripIndex, setSelectedTripIndex] = useState<number | null>(null)
@@ -463,49 +478,6 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
     let d = 0
     for (let i = 1; i < pts.length; i++) d += haversineMeasureKm(pts[i - 1], pts[i])
     return d
-  }
-
-  // Expand a pair of lat/lng points into a great circle arc (geodesic interpolation)
-  function geodesicArc(a: [number, number], b: [number, number], steps = 64): [number, number][] {
-    const toRad = (v: number) => v * Math.PI / 180
-    const toDeg = (v: number) => v * 180 / Math.PI
-    const lat1 = toRad(a[0]), lng1 = toRad(a[1])
-    const lat2 = toRad(b[0]), lng2 = toRad(b[1])
-    const x1 = Math.cos(lat1) * Math.cos(lng1), y1 = Math.cos(lat1) * Math.sin(lng1), z1 = Math.sin(lat1)
-    const x2 = Math.cos(lat2) * Math.cos(lng2), y2 = Math.cos(lat2) * Math.sin(lng2), z2 = Math.sin(lat2)
-    const dot = Math.min(1, Math.max(-1, x1*x2 + y1*y2 + z1*z2))
-    const angle = Math.acos(dot)
-    if (angle < 1e-6) return [a, b]
-    const sinA = Math.sin(angle)
-    const result: [number, number][] = []
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps
-      const s1 = Math.sin((1 - t) * angle) / sinA
-      const s2 = Math.sin(t * angle) / sinA
-      const x = s1*x1 + s2*x2, y = s1*y1 + s2*y2, z = s1*z1 + s2*z2
-      result.push([toDeg(Math.atan2(z, Math.sqrt(x*x + y*y))), toDeg(Math.atan2(y, x))])
-    }
-    // Unwrap longitudes so consecutive points never jump >180° (antimeridian fix)
-    for (let i = 1; i < result.length; i++) {
-      let lng = result[i][1]
-      const prev = result[i - 1][1]
-      while (lng - prev > 180) lng -= 360
-      while (lng - prev < -180) lng += 360
-      result[i] = [result[i][0], lng]
-    }
-    return result
-  }
-
-  // Expand all segments of a path into geodesic arcs
-  function geodesicPath(pts: [number, number][]): [number, number][] {
-    if (pts.length < 2) return pts
-    const result: [number, number][] = []
-    for (let i = 0; i < pts.length - 1; i++) {
-      const arc = geodesicArc(pts[i], pts[i + 1])
-      if (i > 0) arc.shift() // avoid duplicating shared points
-      result.push(...arc)
-    }
-    return result
   }
 
   // Measurement tool: click + mousemove handlers wired to map
@@ -1898,6 +1870,8 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
 
       mapRef.current = map
 
+      map.createPane('transferPane').style.zIndex = '410' // above trip polylines (typically overlayPane ~400), below markerPane (600)
+
       // Polar circles at 66.5634° N/S — span 3 world copies so they're visible when panning
       const POLAR_LAT = 66.5634
       const polarOpts = { color: '#94a3b8', weight: 1, opacity: 0.7, dashArray: '6, 8', interactive: false }
@@ -2075,6 +2049,47 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
           if (selectedRouteIndexRef.current !== routeIdx) return
           setHoveredRouteDistanceRef.current(null)
         })
+      }
+
+      // Boat/plane transfers — great-circle arcs, dashed, colored by mode
+      const escapeHtml = (s: string) =>
+        s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
+      for (const transfer of transfers) {
+        const arc = geodesicArc([transfer.from_lat, transfer.from_lng], [transfer.to_lat, transfer.to_lng])
+        const color = transfer.mode === 'boat' ? '#38bdf8' : '#a78bfa'
+
+        const line = L.polyline(arc, {
+          color,
+          weight: 3,
+          opacity: 0.85,
+          dashArray: '4, 8',
+          pane: 'transferPane',
+        }).addTo(map)
+
+        const distanceKm = Math.round(haversineM(transfer.from_lat, transfer.from_lng, transfer.to_lat, transfer.to_lng) / 1000)
+        const dateLabel = transfer.end_date && transfer.end_date !== transfer.start_date
+          ? `${toDateStr(transfer.start_date)} → ${toDateStr(transfer.end_date)}`
+          : toDateStr(transfer.start_date)
+
+        line.bindPopup(`
+          <div style="font-size:13px;line-height:1.5">
+            <strong>${transfer.mode === 'boat' ? '⛴️' : '✈️'} ${escapeHtml(transfer.label)}</strong><br/>
+            ${dateLabel}<br/>
+            ${distanceKm} km
+          </div>
+        `)
+
+        const mid = arc[Math.floor(arc.length / 2)]
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="font-size:16px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6))">${transfer.mode === 'boat' ? '⛴️' : '✈️'}</div>`,
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+        })
+        const marker = L.marker(mid, { icon, pane: 'transferPane' }).addTo(map)
+        marker.bindPopup(line.getPopup()!.getContent() as string)
+
+        transferLayersRef.current.push(line, marker)
       }
 
       // Ensure trip hit zones are above planned route hit zones
@@ -2324,6 +2339,8 @@ export function Map({ trips, waypoints, plannedRoutes, videos, locale, externalH
       breakMarkersRef.current = []
       tripEndpointMarkersRef.current.forEach(m => m.remove())
       tripEndpointMarkersRef.current = []
+      transferLayersRef.current.forEach((l) => l.remove())
+      transferLayersRef.current = []
       mapRef.current?.remove()
       mapRef.current = null
       polylinesRef.current = []
